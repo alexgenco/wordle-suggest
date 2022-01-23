@@ -152,28 +152,7 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod test {
-    use super::{parse_attempt, Attempt, CharAttempt};
-
-    #[test]
-    fn test_parse_attempt() {
-        match parse_attempt("^boa?ts") {
-            Ok((rest, attempts)) => {
-                assert_eq!(
-                    attempts,
-                    Attempt(
-                        CharAttempt::Here('b'),
-                        CharAttempt::Nowhere('o'),
-                        CharAttempt::Nowhere('a'),
-                        CharAttempt::Elsewhere('t'),
-                        CharAttempt::Nowhere('s'),
-                    )
-                );
-
-                assert_eq!("", rest);
-            }
-            e => panic!("{:?}", e),
-        }
-    }
+    use super::{Attempt, CharAttempt};
 
     #[test]
     fn test_attempt_filter() {
