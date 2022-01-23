@@ -22,11 +22,14 @@ struct Opts {
     )]
     words_file: PathBuf,
 
-    #[clap(short, long, parse(from_os_str))]
+    #[clap(short = 'f', long, parse(from_os_str))]
     attempts_file: Option<PathBuf>,
 
-    #[clap(short = 'n', default_value = "3")]
+    #[clap(short = 'n', default_value = "3", conflicts_with = "all")]
     nsuggestions: usize,
+
+    #[clap(short, long, conflicts_with = "nsuggestions")]
+    all: bool,
 
     #[clap(short, long)]
     seed: Option<u64>,
@@ -140,14 +143,15 @@ fn load_words(path: PathBuf, attempts: &Vec<Attempt>) -> Result<Vec<String>> {
     Ok(words)
 }
 
-fn pick_suggestions(words: &Vec<String>, nsuggestions: usize, seed: Option<u64>) -> Vec<String> {
+fn pick_suggestions(words: &Vec<String>, n: Option<usize>, seed: Option<u64>) -> Vec<String> {
     let mut rng = seed
         .map(SmallRng::seed_from_u64)
         .unwrap_or_else(SmallRng::from_entropy);
-    words
-        .choose_multiple(&mut rng, nsuggestions)
-        .cloned()
-        .collect()
+
+    match n {
+        Some(n) => words.choose_multiple(&mut rng, n).cloned().collect(),
+        None => words.to_vec(),
+    }
 }
 
 fn main() -> Result<()> {
@@ -155,6 +159,7 @@ fn main() -> Result<()> {
         words_file,
         attempts_file,
         nsuggestions,
+        all,
         seed,
     } = Opts::parse();
 
@@ -163,8 +168,10 @@ fn main() -> Result<()> {
         None => Vec::new(),
     };
 
+    let n = if all { None } else { Some(nsuggestions) };
+
     let words = load_words(words_file, &attempts)?;
-    let suggestions = pick_suggestions(&words, nsuggestions, seed);
+    let suggestions = pick_suggestions(&words, n, seed);
 
     for suggestion in suggestions {
         println!("{}", suggestion);
