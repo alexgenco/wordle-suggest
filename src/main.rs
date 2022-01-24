@@ -20,9 +20,9 @@ struct Opts {
     attempts_file: Option<PathBuf>,
 
     #[clap(short = 'n', default_value = "3", conflicts_with = "all")]
-    nsuggestions: usize,
+    number: usize,
 
-    #[clap(short, long, conflicts_with = "nsuggestions")]
+    #[clap(short, long, conflicts_with = "number")]
     all: bool,
 
     #[clap(short, long)]
@@ -63,7 +63,7 @@ impl CharAttempt {
             CharAttempt::Elsewhere(c) => word.contains(*c) && word.chars().nth(i).unwrap() != *c,
             CharAttempt::Nowhere(c) => {
                 // This isn't a strict `!word.contains(*c)` because in the case of
-                // repeated characters, one of the repeats with be marked `Nowhere`.
+                // repeated characters, one of the repeats will be marked `Nowhere`.
                 word.chars().nth(i).unwrap() != *c
             }
         }
@@ -163,7 +163,7 @@ fn pick_suggestions(words: BinaryHeap<Word>, n: Option<usize>) -> BinaryHeap<Wor
 fn main() -> Result<()> {
     let Opts {
         attempts_file,
-        nsuggestions,
+        number: nsuggestions,
         all,
         seed,
     } = Opts::parse();
