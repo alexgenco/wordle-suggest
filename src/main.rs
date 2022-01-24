@@ -1,13 +1,15 @@
 use std::{
+    collections::BinaryHeap,
+    fmt::Display,
     fs::File,
     io::{stdin, BufRead, BufReader},
     path::PathBuf,
+    str::FromStr,
 };
 
 use clap::Parser;
 use eyre::{eyre, Result};
 use parser::parse_attempt;
-use rand::{prelude::SmallRng, seq::SliceRandom, SeedableRng};
 
 mod parser;
 
@@ -29,9 +31,6 @@ struct Opts {
 
     #[clap(short, long, conflicts_with = "nsuggestions")]
     all: bool,
-
-    #[clap(short, long)]
-    seed: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,7 +43,7 @@ pub struct Attempt(
 );
 
 impl Attempt {
-    fn matches(&self, word: &String) -> bool {
+    fn matches(&self, word: &Word) -> bool {
         [&self.0, &self.1, &self.2, &self.3, &self.4]
             .iter()
             .enumerate()
@@ -60,7 +59,9 @@ enum CharAttempt {
 }
 
 impl CharAttempt {
-    fn matches(&self, i: usize, word: &String) -> bool {
+    fn matches(&self, i: usize, word: &Word) -> bool {
+        let word = &word.s;
+
         match self {
             CharAttempt::Here(c) => word.chars().nth(i).unwrap() == *c,
             CharAttempt::Elsewhere(c) => word.contains(*c) && word.chars().nth(i).unwrap() != *c,
@@ -92,18 +93,70 @@ fn load_attempts(path: PathBuf) -> Result<Vec<Attempt>> {
     Ok(attempts)
 }
 
-fn load_words(path: PathBuf, attempts: &Vec<Attempt>) -> Result<Vec<String>> {
-    let mut words = Vec::new();
+#[derive(Debug, Ord, Eq, PartialEq)]
+struct Word {
+    s: String,
+    score: usize,
+}
+
+impl Display for Word {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.s)
+    }
+}
+
+impl PartialOrd for Word {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.score.partial_cmp(&other.score)
+    }
+}
+
+impl FromStr for Word {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() == 5 && s.starts_with(|ch: char| ch.is_ascii_lowercase()) {
+            let mut score = 0;
+
+            // Most common letters
+            for c in ['e', 't', 'a', 'i', 'o', 'n', 's', 'h', 'r'] {
+                if s.contains(c) {
+                    score += 1
+                }
+            }
+
+            // Most common starting letters
+            for c in ['t', 'a', 'o', 'd', 'w'] {
+                if s.starts_with(c) {
+                    score += 1
+                }
+            }
+
+            // Most common ending letters
+            for c in ['e', 's', 'd', 't'] {
+                if s.ends_with(c) {
+                    score += 1
+                }
+            }
+
+            Ok(Self {
+                s: s.to_string(),
+                score,
+            })
+        } else {
+            Err(())
+        }
+    }
+}
+
+fn load_words(path: PathBuf, attempts: &Vec<Attempt>) -> Result<BinaryHeap<Word>> {
+    let mut words = BinaryHeap::new();
     let file = File::open(path)?;
     let lines = BufReader::new(file).lines();
 
     for line in lines {
-        match line {
-            Ok(word)
-                if word.len() == 5
-                    && word.starts_with(|ch: char| ch.is_ascii_lowercase())
-                    && attempts.iter().all(|attempt| attempt.matches(&word)) =>
-            {
+        match Word::from_str(&line?) {
+            Ok(word) if attempts.iter().all(|a| a.matches(&word)) => {
                 words.push(word);
             }
             _ => {}
@@ -113,14 +166,10 @@ fn load_words(path: PathBuf, attempts: &Vec<Attempt>) -> Result<Vec<String>> {
     Ok(words)
 }
 
-fn pick_suggestions(words: &Vec<String>, n: Option<usize>, seed: Option<u64>) -> Vec<String> {
-    let mut rng = seed
-        .map(SmallRng::seed_from_u64)
-        .unwrap_or_else(SmallRng::from_entropy);
-
+fn pick_suggestions(words: BinaryHeap<Word>, n: Option<usize>) -> BinaryHeap<Word> {
     match n {
-        Some(n) => words.choose_multiple(&mut rng, n).cloned().collect(),
-        None => words.to_vec(),
+        Some(n) => words.into_iter().take(n).collect(),
+        None => words,
     }
 }
 
@@ -130,7 +179,6 @@ fn main() -> Result<()> {
         attempts_file,
         nsuggestions,
         all,
-        seed,
     } = Opts::parse();
 
     let attempts = match attempts_file {
@@ -141,7 +189,7 @@ fn main() -> Result<()> {
     let n = if all { None } else { Some(nsuggestions) };
 
     let words = load_words(words_file, &attempts)?;
-    let suggestions = pick_suggestions(&words, n, seed);
+    let suggestions = pick_suggestions(words, n);
 
     for suggestion in suggestions {
         println!("{}", suggestion);
