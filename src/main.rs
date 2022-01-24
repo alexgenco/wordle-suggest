@@ -19,7 +19,7 @@ struct Opts {
     #[clap(short = 'f', long, parse(from_os_str))]
     attempts_file: Option<PathBuf>,
 
-    #[clap(short = 'n', default_value = "3", conflicts_with = "all")]
+    #[clap(short = 'n', default_value = "10", conflicts_with = "all")]
     number: usize,
 
     #[clap(short, long, conflicts_with = "number")]
