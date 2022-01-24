@@ -4,25 +4,18 @@ use std::{
     fs::File,
     io::{stdin, BufRead, BufReader},
     path::PathBuf,
-    str::FromStr,
 };
 
 use clap::Parser;
 use eyre::{eyre, Result};
 use parser::parse_attempt;
+use rand::{prelude::SmallRng, Rng, SeedableRng};
 
 mod parser;
+mod words;
 
 #[derive(Debug, Parser)]
 struct Opts {
-    #[clap(
-        short,
-        long,
-        parse(from_os_str),
-        default_value = "/usr/share/dict/words"
-    )]
-    words_file: PathBuf,
-
     #[clap(short = 'f', long, parse(from_os_str))]
     attempts_file: Option<PathBuf>,
 
@@ -31,6 +24,9 @@ struct Opts {
 
     #[clap(short, long, conflicts_with = "nsuggestions")]
     all: bool,
+
+    #[clap(short, long)]
+    seed: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -111,55 +107,46 @@ impl PartialOrd for Word {
     }
 }
 
-impl FromStr for Word {
-    type Err = ();
+impl Word {
+    fn new(s: &str, rng: &mut SmallRng) -> Self {
+        let mut score = rng.gen_range(0..10);
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() == 5 && s.starts_with(|ch: char| ch.is_ascii_lowercase()) {
-            let mut score = 0;
-
-            // Most common letters
-            for c in ['e', 't', 'a', 'i', 'o', 'n', 's', 'h', 'r'] {
-                if s.contains(c) {
-                    score += 1
-                }
+        // Most common letters
+        for c in ['e', 't', 'a', 'i', 'o', 'n', 's', 'h', 'r'] {
+            if s.contains(c) {
+                score += 1
             }
+        }
 
-            // Most common starting letters
-            for c in ['t', 'a', 'o', 'd', 'w'] {
-                if s.starts_with(c) {
-                    score += 1
-                }
+        // Most common starting letters
+        for c in ['t', 'a', 'o', 'd', 'w'] {
+            if s.starts_with(c) {
+                score += 1
             }
+        }
 
-            // Most common ending letters
-            for c in ['e', 's', 'd', 't'] {
-                if s.ends_with(c) {
-                    score += 1
-                }
+        // Most common ending letters
+        for c in ['e', 's', 'd', 't'] {
+            if s.ends_with(c) {
+                score += 1
             }
+        }
 
-            Ok(Self {
-                s: s.to_string(),
-                score,
-            })
-        } else {
-            Err(())
+        Self {
+            s: s.to_string(),
+            score,
         }
     }
 }
 
-fn load_words(path: PathBuf, attempts: &Vec<Attempt>) -> Result<BinaryHeap<Word>> {
+fn load_words(attempts: &Vec<Attempt>, rng: &mut SmallRng) -> Result<BinaryHeap<Word>> {
     let mut words = BinaryHeap::new();
-    let file = File::open(path)?;
-    let lines = BufReader::new(file).lines();
 
-    for line in lines {
-        match Word::from_str(&line?) {
-            Ok(word) if attempts.iter().all(|a| a.matches(&word)) => {
-                words.push(word);
-            }
-            _ => {}
+    for s in words::iter_words() {
+        let word = Word::new(s, rng);
+
+        if attempts.iter().all(|a| a.matches(&word)) {
+            words.push(word);
         }
     }
 
@@ -175,10 +162,10 @@ fn pick_suggestions(words: BinaryHeap<Word>, n: Option<usize>) -> BinaryHeap<Wor
 
 fn main() -> Result<()> {
     let Opts {
-        words_file,
         attempts_file,
         nsuggestions,
         all,
+        seed,
     } = Opts::parse();
 
     let attempts = match attempts_file {
@@ -187,8 +174,12 @@ fn main() -> Result<()> {
     };
 
     let n = if all { None } else { Some(nsuggestions) };
+    let mut rng = match seed {
+        Some(s) => SmallRng::seed_from_u64(s),
+        None => SmallRng::from_entropy(),
+    };
 
-    let words = load_words(words_file, &attempts)?;
+    let words = load_words(&attempts, &mut rng)?;
     let suggestions = pick_suggestions(words, n);
 
     for suggestion in suggestions {
@@ -200,6 +191,8 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod test {
+    use crate::Word;
+
     use super::{Attempt, CharAttempt};
 
     #[test]
@@ -212,6 +205,11 @@ mod test {
             CharAttempt::Nowhere('g'),
         );
 
-        assert!(attempt.matches(&"crimp".to_string()));
+        let word = Word {
+            s: "crimp".to_string(),
+            score: 0,
+        };
+
+        assert!(attempt.matches(&word));
     }
 }
