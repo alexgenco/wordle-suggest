@@ -109,7 +109,7 @@ impl PartialOrd for Word {
 
 impl Word {
     fn new(s: &str, rng: &mut SmallRng) -> Self {
-        let mut score = rng.gen_range(0..10);
+        let mut score = rng.gen_range(0..20);
 
         // Most common letters
         for c in ['e', 't', 'a', 'i', 'o', 'n', 's', 'h', 'r'] {
