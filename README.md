@@ -21,9 +21,9 @@ seres
 Enter one into the puzzle and write the result to a file using the following
 syntax:
 
-`^x`: `x` is in the correct position (green)
-`?x`: `x` is in the incorrect position (yellow)
-`x`: `x` is not in the word (none)
+- `^x`: `x` is in the correct position (green)
+- `?x`: `x` is in the incorrect position (yellow)
+- `x`: `x` is not in the word (none)
 
 For instance, for this result:
 
