@@ -1,4 +1,4 @@
-use std::{collections::BinaryHeap, fmt::Display};
+use std::collections::BinaryHeap;
 
 use crate::attempt::Attempt;
 
@@ -7,12 +7,12 @@ mod weights {
 }
 
 #[derive(Debug, Ord, Eq, PartialEq)]
-struct WeightedWord {
+struct Word {
     s: String,
     weight: usize,
 }
 
-impl WeightedWord {
+impl Word {
     fn new(s: &str, weight: usize) -> Self {
         Self {
             s: s.to_string(),
@@ -21,28 +21,49 @@ impl WeightedWord {
     }
 }
 
-impl Into<String> for WeightedWord {
-    fn into(self) -> String {
-        self.s
-    }
-}
-
-impl Display for WeightedWord {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.s)
-    }
-}
-
-impl PartialOrd for WeightedWord {
+impl PartialOrd for Word {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.weight.partial_cmp(&other.weight)
     }
 }
 
-pub fn filter_words(attempts: &Vec<Attempt>) -> BinaryHeap<impl Into<String> + Display> {
-    weights::WEIGHTS
+pub struct FilteredWords {
+    heap: BinaryHeap<Word>,
+    limit: Option<usize>,
+    taken: usize,
+}
+
+impl Iterator for FilteredWords {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self {
+                limit: Some(n),
+                taken,
+                ..
+            } if *taken >= *n => None,
+            Self { heap, taken, .. } => match heap.pop() {
+                Some(word) => {
+                    *taken += 1;
+                    Some(word.s)
+                }
+                None => None,
+            },
+        }
+    }
+}
+
+pub fn filtered_words(attempts: &Vec<Attempt>, limit: Option<usize>) -> FilteredWords {
+    let heap = weights::WEIGHTS
         .iter()
         .filter(|(word, _)| attempts.iter().all(|a| a.matches(word)))
-        .map(|(word, weight)| WeightedWord::new(word, *weight))
-        .collect()
+        .map(|(word, weight)| Word::new(word, *weight))
+        .collect();
+
+    FilteredWords {
+        heap,
+        limit,
+        taken: 0,
+    }
 }

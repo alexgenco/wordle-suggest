@@ -23,15 +23,6 @@ struct Opts {
     all: bool,
 }
 
-fn input_reader(path: PathBuf) -> Result<Box<dyn BufRead>> {
-    if path.to_string_lossy() == "-" {
-        Ok(Box::new(BufReader::new(stdin())))
-    } else {
-        let file = File::open(path)?;
-        Ok(Box::new(BufReader::new(file)))
-    }
-}
-
 fn main() -> Result<()> {
     let Opts { file, number, all } = Opts::parse();
 
@@ -40,12 +31,20 @@ fn main() -> Result<()> {
         None => Vec::new(),
     };
 
-    let words = words::filter_words(&attempts);
-    let n = if all { words.len() } else { number };
+    let limit = if all { None } else { Some(number) };
 
-    for word in words.iter().take(n) {
+    for word in words::filtered_words(&attempts, limit) {
         println!("{}", word);
     }
 
     Ok(())
+}
+
+fn input_reader(path: PathBuf) -> Result<Box<dyn BufRead>> {
+    if path.to_string_lossy() == "-" {
+        Ok(Box::new(BufReader::new(stdin())))
+    } else {
+        let file = File::open(path)?;
+        Ok(Box::new(BufReader::new(file)))
+    }
 }
