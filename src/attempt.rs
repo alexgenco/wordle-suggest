@@ -14,7 +14,16 @@ impl Attempt {
         [&self.0, &self.1, &self.2, &self.3, &self.4]
             .iter()
             .enumerate()
-            .all(|(i, ca)| ca.matches(i, &chars))
+            .all(|(i, ca)| match ca {
+                CharAttempt::Here(c) => chars[i] == *c,
+                CharAttempt::Elsewhere(c) => chars.contains(c) && chars[i] != *c,
+                CharAttempt::Nowhere(c) => {
+                    // This isn't a strict `!word.contains(*c)` because in the case of repeated
+                    // characters, one of the repeats can be marked `Nowhere` if the other is marked
+                    // `Elsewhere`.
+                    chars[i] != *c
+                }
+            })
     }
 }
 
@@ -23,21 +32,6 @@ pub enum CharAttempt {
     Here(char),
     Elsewhere(char),
     Nowhere(char),
-}
-
-impl CharAttempt {
-    fn matches(&self, i: usize, chars: &Vec<char>) -> bool {
-        match self {
-            CharAttempt::Here(c) => chars[i] == *c,
-            CharAttempt::Elsewhere(c) => chars.contains(c) && chars[i] != *c,
-            CharAttempt::Nowhere(c) => {
-                // This isn't a strict `!word.contains(*c)` because in the case of repeated
-                // characters, one of the repeats can be marked `Nowhere` if the other is marked
-                // `Elsewhere`.
-                chars[i] != *c
-            }
-        }
-    }
 }
 
 #[cfg(test)]
