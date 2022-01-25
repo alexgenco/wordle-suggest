@@ -12,15 +12,6 @@ struct Word {
     weight: usize,
 }
 
-impl Word {
-    fn new(s: &str, weight: usize) -> Self {
-        Self {
-            s: s.to_string(),
-            weight,
-        }
-    }
-}
-
 impl PartialOrd for Word {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.weight.partial_cmp(&other.weight)
@@ -56,9 +47,17 @@ impl Iterator for FilteredWords {
 
 pub fn filtered_words(attempts: &Vec<Attempt>, limit: Option<usize>) -> FilteredWords {
     let heap = weights::WEIGHTS
-        .iter()
-        .filter(|(word, _)| attempts.iter().all(|a| a.matches(word)))
-        .map(|(word, weight)| Word::new(word, *weight))
+        .into_iter()
+        .filter_map(|(word, weight)| {
+            if attempts.iter().all(|a| a.matches(word)) {
+                Some(Word {
+                    s: word.to_string(),
+                    weight,
+                })
+            } else {
+                None
+            }
+        })
         .collect();
 
     FilteredWords {
