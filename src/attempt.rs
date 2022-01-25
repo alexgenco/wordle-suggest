@@ -8,9 +8,7 @@ pub struct Attempt(
 );
 
 impl Attempt {
-    pub fn matches(&self, word: &'static str) -> bool {
-        let chars: Vec<char> = word.chars().collect();
-
+    pub fn matches(&self, chars: [char; 5]) -> bool {
         [&self.0, &self.1, &self.2, &self.3, &self.4]
             .iter()
             .enumerate()
@@ -48,7 +46,7 @@ mod test {
             CharAttempt::Nowhere('g'),
         );
 
-        assert!(attempt.matches("crimp"));
-        assert!(!attempt.matches("crust"));
+        assert!(attempt.matches(['c', 'r', 'i', 'm', 'p']));
+        assert!(attempt.matches(['c', 'r', 'u', 's', 't']));
     }
 }

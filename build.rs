@@ -1,20 +1,32 @@
-use std::{collections::HashMap, env, fs, path::Path};
+use std::{
+    collections::HashMap,
+    env,
+    fs::{self, File},
+    io::{BufRead, BufReader},
+    path::Path,
+};
 
 fn main() {
-    let words_str = include_str!("words.txt");
+    println!("cargo:rerun-if-changed=words.txt");
+
     let mut words = Vec::new();
     let mut char_weights = HashMap::new();
 
-    for word in words_str.lines() {
-        words.push(word);
+    let words_file = File::open("words.txt").unwrap();
+    let rd = BufReader::new(words_file);
+
+    for line in rd.lines() {
+        let word = line.unwrap();
 
         for (i, c) in word.chars().enumerate() {
             char_weights.entry(c).or_insert([0; 5])[i] += 1;
         }
+
+        words.push(word);
     }
 
     let mut rust = format!(
-        "pub static WEIGHTS: [(&'static str, usize); {}] = [",
+        "pub static WEIGHTS: [([char; 5], usize); {}] = [",
         words.len()
     );
 
@@ -23,7 +35,13 @@ fn main() {
             acc + char_weights.get(&c).map(|arr| arr[i]).unwrap_or(0)
         });
 
-        rust.push_str(&format!("\n    ({:?}, {}),", word, weight));
+        let charstr = word
+            .chars()
+            .map(|c| format!("'{}'", c))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        rust.push_str(&format!("\n    ([{}], {}),", charstr, weight));
     }
 
     rust.push_str("\n];");
