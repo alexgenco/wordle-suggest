@@ -19,7 +19,7 @@ struct Opts {
         long,
         parse(from_os_str),
         display_order = 0,
-        help = "Path to attempts file. Pass `-` for STDIN.",
+        help = "Path to attempts file. Pass `-` for STDIN."
     )]
     file: Option<PathBuf>,
 

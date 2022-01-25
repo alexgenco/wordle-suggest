@@ -1,4 +1,4 @@
-use std::collections::BinaryHeap;
+use std::{collections::BinaryHeap, iter};
 
 use crate::attempt::Attempt;
 
@@ -18,35 +18,17 @@ impl PartialOrd for Word {
     }
 }
 
-pub struct FilteredWords {
-    heap: BinaryHeap<Word>,
-    limit: Option<usize>,
-    taken: usize,
-}
-
-impl Iterator for FilteredWords {
-    type Item = String;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self {
-                limit: Some(n),
-                taken,
-                ..
-            } if *taken >= *n => None,
-            Self { heap, taken, .. } => match heap.pop() {
-                Some(word) => {
-                    *taken += 1;
-                    Some(word.s)
-                }
-                None => None,
-            },
-        }
+impl Into<String> for Word {
+    fn into(self) -> String {
+        self.s
     }
 }
 
-pub fn filtered_words(attempts: &Vec<Attempt>, limit: Option<usize>) -> FilteredWords {
-    let heap = weights::WEIGHTS
+pub fn filtered_words(
+    attempts: &Vec<Attempt>,
+    limit: Option<usize>,
+) -> Box<dyn Iterator<Item = String>> {
+    let mut heap: BinaryHeap<Word> = weights::WEIGHTS
         .into_iter()
         .filter_map(|(word, weight)| {
             if attempts.iter().all(|a| a.matches(word)) {
@@ -60,9 +42,10 @@ pub fn filtered_words(attempts: &Vec<Attempt>, limit: Option<usize>) -> Filtered
         })
         .collect();
 
-    FilteredWords {
-        heap,
-        limit,
-        taken: 0,
+    let it = iter::from_fn(move || heap.pop().map(Into::into));
+
+    match limit {
+        Some(n) => Box::new(it.take(n)),
+        None => Box::new(it),
     }
 }
