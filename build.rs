@@ -8,8 +8,8 @@ fn main() {
     for word in words_str.lines() {
         words.push(word);
 
-        for c in word.chars() {
-            *char_weights.entry(c).or_insert(0) += 1
+        for (i, c) in word.chars().enumerate() {
+            char_weights.entry(c).or_insert([0; 5])[i] += 1;
         }
     }
 
@@ -19,10 +19,11 @@ fn main() {
     );
 
     for word in words {
-        let char_weights = word
-            .chars()
-            .fold(0, |acc, c| acc + char_weights.get(&c).unwrap());
-        rust.push_str(&format!("\n    ({:?}, {}),", word, char_weights));
+        let weight = word.chars().enumerate().fold(0, |acc, (i, c)| {
+            acc + char_weights.get(&c).map(|arr| arr[i]).unwrap_or(0)
+        });
+
+        rust.push_str(&format!("\n    ({:?}, {}),", word, weight));
     }
 
     rust.push_str("\n];");
