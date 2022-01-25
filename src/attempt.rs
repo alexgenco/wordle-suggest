@@ -49,5 +49,6 @@ mod test {
         );
 
         assert!(attempt.matches("crimp"));
+        assert!(!attempt.matches("crust"));
     }
 }
