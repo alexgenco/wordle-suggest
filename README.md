@@ -25,11 +25,11 @@ syntax:
 - `?x`: `x` is in the incorrect position (yellow)
 - `x`: `x` is not in the word (none)
 
-For instance, for this result:
+For example, this result:
 
-<upload image>
+<img width="337" alt="Screen Shot 2022-01-25 at 9 37 46 AM" src="https://user-images.githubusercontent.com/566993/151033991-a088eb62-5515-4ca4-bcb1-b83bd3f48f10.png">
 
-Enter the following:
+Is represented like this:
 
 ```
 ^sc?r^ap
