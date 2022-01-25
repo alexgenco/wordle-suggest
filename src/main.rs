@@ -16,22 +16,22 @@ struct Opts {
     #[clap(short, long, parse(from_os_str))]
     file: Option<PathBuf>,
 
-    #[clap(short, long, default_value = "10", conflicts_with = "all")]
-    number: usize,
+    #[clap(short = 'n', long, default_value = "10", conflicts_with = "all")]
+    limit: usize,
 
-    #[clap(short, long, conflicts_with = "number")]
+    #[clap(short, long, conflicts_with = "limit")]
     all: bool,
 }
 
 fn main() -> Result<()> {
-    let Opts { file, number, all } = Opts::parse();
+    let Opts { file, limit, all } = Opts::parse();
 
     let attempts = match file {
         Some(path) => parser::parse_reader(input_reader(path)?)?,
         None => Vec::new(),
     };
 
-    let limit = if all { None } else { Some(number) };
+    let limit = if all { None } else { Some(limit) };
 
     for word in words::filtered_words(&attempts, limit) {
         println!("{}", word);
