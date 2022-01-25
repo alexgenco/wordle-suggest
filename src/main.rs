@@ -12,14 +12,34 @@ mod parser;
 mod words;
 
 #[derive(Debug, Parser)]
+#[clap(about = "Get word suggestions for Wordle")]
 struct Opts {
-    #[clap(short, long, parse(from_os_str))]
+    #[clap(
+        short,
+        long,
+        parse(from_os_str),
+        display_order = 0,
+        help = "Path to attempts file. Pass `-` for STDIN.",
+    )]
     file: Option<PathBuf>,
 
-    #[clap(short = 'n', long, default_value = "10", conflicts_with = "all")]
+    #[clap(
+        short = 'n',
+        long,
+        default_value = "10",
+        conflicts_with = "all",
+        display_order = 1,
+        help = "Limit the number of words returned"
+    )]
     limit: usize,
 
-    #[clap(short, long, conflicts_with = "limit")]
+    #[clap(
+        short,
+        long,
+        conflicts_with = "limit",
+        display_order = 2,
+        help = "Do not limit the number of words returned"
+    )]
     all: bool,
 }
 
