@@ -9,10 +9,9 @@ use std::{
 use clap::Parser;
 use eyre::{eyre, Result};
 use parser::parse_attempt;
-use rand::{prelude::SmallRng, Rng, SeedableRng};
 
 mod parser;
-mod words;
+mod weights;
 
 #[derive(Debug, Parser)]
 struct Opts {
@@ -24,9 +23,6 @@ struct Opts {
 
     #[clap(short, long, conflicts_with = "number")]
     all: bool,
-
-    #[clap(short, long)]
-    seed: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -39,7 +35,7 @@ pub struct Attempt(
 );
 
 impl Attempt {
-    fn matches(&self, word: &Word) -> bool {
+    fn matches(&self, word: &'static str) -> bool {
         [&self.0, &self.1, &self.2, &self.3, &self.4]
             .iter()
             .enumerate()
@@ -55,9 +51,7 @@ enum CharAttempt {
 }
 
 impl CharAttempt {
-    fn matches(&self, i: usize, word: &Word) -> bool {
-        let word = &word.s;
-
+    fn matches(&self, i: usize, word: &'static str) -> bool {
         match self {
             CharAttempt::Here(c) => word.chars().nth(i).unwrap() == *c,
             CharAttempt::Elsewhere(c) => word.contains(*c) && word.chars().nth(i).unwrap() != *c,
@@ -68,6 +62,41 @@ impl CharAttempt {
             }
         }
     }
+}
+
+impl WeightedWord {
+    fn new(s: &str, weight: usize) -> Self {
+        Self {
+            s: s.to_string(),
+            weight,
+        }
+    }
+}
+
+#[derive(Debug, Ord, Eq, PartialEq)]
+struct WeightedWord {
+    s: String,
+    weight: usize,
+}
+
+impl Display for WeightedWord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.s)
+    }
+}
+
+impl PartialOrd for WeightedWord {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.weight.partial_cmp(&other.weight)
+    }
+}
+
+fn load_words(attempts: &Vec<Attempt>) -> BinaryHeap<WeightedWord> {
+    weights::WEIGHTS
+        .iter()
+        .filter(|(word, _)| attempts.iter().all(|a| a.matches(word)))
+        .map(|(word, weight)| WeightedWord::new(word, *weight))
+        .collect()
 }
 
 fn load_attempts(path: PathBuf) -> Result<Vec<Attempt>> {
@@ -89,83 +118,11 @@ fn load_attempts(path: PathBuf) -> Result<Vec<Attempt>> {
     Ok(attempts)
 }
 
-#[derive(Debug, Ord, Eq, PartialEq)]
-struct Word {
-    s: String,
-    score: usize,
-}
-
-impl Display for Word {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.s)
-    }
-}
-
-impl PartialOrd for Word {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.score.partial_cmp(&other.score)
-    }
-}
-
-impl Word {
-    fn new(s: &str, rng: &mut SmallRng) -> Self {
-        let mut score = rng.gen_range(0..20);
-
-        // Most common letters
-        for c in ['e', 't', 'a', 'i', 'o', 'n', 's', 'h', 'r'] {
-            if s.contains(c) {
-                score += 1
-            }
-        }
-
-        // Most common starting letters
-        for c in ['t', 'a', 'o', 'd', 'w'] {
-            if s.starts_with(c) {
-                score += 1
-            }
-        }
-
-        // Most common ending letters
-        for c in ['e', 's', 'd', 't'] {
-            if s.ends_with(c) {
-                score += 1
-            }
-        }
-
-        Self {
-            s: s.to_string(),
-            score,
-        }
-    }
-}
-
-fn load_words(attempts: &Vec<Attempt>, rng: &mut SmallRng) -> Result<BinaryHeap<Word>> {
-    let mut words = BinaryHeap::new();
-
-    for s in words::iter_words() {
-        let word = Word::new(s, rng);
-
-        if attempts.iter().all(|a| a.matches(&word)) {
-            words.push(word);
-        }
-    }
-
-    Ok(words)
-}
-
-fn pick_suggestions(words: BinaryHeap<Word>, n: Option<usize>) -> BinaryHeap<Word> {
-    match n {
-        Some(n) => words.into_iter().take(n).collect(),
-        None => words,
-    }
-}
-
 fn main() -> Result<()> {
     let Opts {
         attempts_file,
-        number: nsuggestions,
+        number,
         all,
-        seed,
     } = Opts::parse();
 
     let attempts = match attempts_file {
@@ -173,17 +130,11 @@ fn main() -> Result<()> {
         None => Vec::new(),
     };
 
-    let n = if all { None } else { Some(nsuggestions) };
-    let mut rng = match seed {
-        Some(s) => SmallRng::seed_from_u64(s),
-        None => SmallRng::from_entropy(),
-    };
+    let words = load_words(&attempts);
+    let n = if all { words.len() } else { number };
 
-    let words = load_words(&attempts, &mut rng)?;
-    let suggestions = pick_suggestions(words, n);
-
-    for suggestion in suggestions {
-        println!("{}", suggestion);
+    for word in words.iter().take(n) {
+        println!("{}", word);
     }
 
     Ok(())
@@ -191,8 +142,6 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod test {
-    use crate::Word;
-
     use super::{Attempt, CharAttempt};
 
     #[test]
@@ -205,11 +154,6 @@ mod test {
             CharAttempt::Nowhere('g'),
         );
 
-        let word = Word {
-            s: "crimp".to_string(),
-            score: 0,
-        };
-
-        assert!(attempt.matches(&word));
+        assert!(attempt.matches("crimp"));
     }
 }
