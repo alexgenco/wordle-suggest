@@ -47,6 +47,6 @@ mod test {
         );
 
         assert!(attempt.matches(['c', 'r', 'i', 'm', 'p']));
-        assert!(attempt.matches(['c', 'r', 'u', 's', 't']));
+        assert!(!attempt.matches(['c', 'r', 'u', 's', 't']));
     }
 }
