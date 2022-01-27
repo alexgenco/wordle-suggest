@@ -11,7 +11,10 @@ fn happy_path() -> Result<()> {
     Command::cargo_bin("wordle-suggest")?
         .assert()
         .success()
-        .stdout(predicate::str::contains("\nsales\n"));
+        .stdout(
+            // Words with repeated characters excluded by default on first attempt
+            predicate::str::contains("\nmares\n").and(predicate::str::contains("\nsales\n").not()),
+        );
 
     attempts_file.write_str("^s?ales\n")?;
 
@@ -19,7 +22,19 @@ fn happy_path() -> Result<()> {
         .args(["-f", attempts_file.path().to_str().unwrap(), "-n", "50"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("\nsural\n"));
+        .stdout(
+            // After first attempt, repeated characters are returned by default
+            predicate::str::contains("\nsorra\n"),
+        );
+
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-f", attempts_file.path().to_str().unwrap(), "-r", "unique"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\nsoapy\n").and(
+            // Repeated characters are disallowed with explicit `-r unique`
+            predicate::str::contains("\nsorra\n").not(),
+        ));
 
     attempts_file.write_str("^s^u?r^al\n")?;
 

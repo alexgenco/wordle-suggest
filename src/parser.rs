@@ -6,8 +6,7 @@ use nom::{
     branch::alt, bytes::complete::tag, character::complete::anychar, combinator::map, multi::count,
     sequence::preceded, IResult,
 };
-
-use crate::attempt::{Attempt, CharAttempt};
+use wordle_suggest::{Attempt, CharAttempt};
 
 fn parse_line<'a>(line: &'a str) -> IResult<&'a str, Attempt> {
     map(

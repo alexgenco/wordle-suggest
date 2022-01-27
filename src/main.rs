@@ -6,8 +6,8 @@ use std::{
 
 use anyhow::Result;
 use clap::Parser;
+use wordle_suggest::Rule;
 
-mod attempt;
 mod parser;
 mod words;
 
@@ -41,19 +41,30 @@ struct Opts {
         help = "Do not limit the number of words returned"
     )]
     all: bool,
+
+    #[clap(
+        arg_enum,
+        short,
+        long,
+        multiple_occurrences = true,
+        display_order = 3,
+        help = "Additional filtering rules"
+    )]
+    rules: Vec<Rule>,
 }
 
 fn main() -> Result<()> {
-    let Opts { file, limit, all } = Opts::parse();
+    let Opts { file, limit, all, rules } = Opts::parse();
 
     let attempts = match file {
         Some(path) => parser::parse_reader(input_reader(path)?)?,
         None => Vec::new(),
     };
 
+    let rules = Rule::defaults(rules, attempts.len());
     let limit = if all { None } else { Some(limit) };
 
-    for word in words::filtered_words(&attempts, limit) {
+    for word in words::filtered_words(&attempts, &rules, limit) {
         println!("{}", word);
     }
 
