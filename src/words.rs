@@ -1,6 +1,6 @@
 use std::{collections::BinaryHeap, iter};
 
-use wordle_suggest::{match_attempt, Attempt, Rule, match_rule};
+use wordle_suggest::{match_guess, Guess, Rule, match_rule, Word};
 
 mod weights {
     include!(concat!(env!("OUT_DIR"), "/weights.rs"));
@@ -8,7 +8,7 @@ mod weights {
 
 #[derive(Debug, Ord, Eq, PartialEq)]
 struct WeightedWord {
-    chars: [char; 5],
+    word: Word,
     weight: usize,
 }
 
@@ -20,22 +20,22 @@ impl PartialOrd for WeightedWord {
 
 impl Into<String> for WeightedWord {
     fn into(self) -> String {
-        String::from_iter(self.chars)
+        String::from_iter(self.word)
     }
 }
 
 pub fn filtered_words(
-    attempts: &Vec<Attempt>,
+    guesses: &Vec<Guess>,
     rules: &Vec<Rule>,
     limit: Option<usize>,
 ) -> impl Iterator<Item = String> {
     let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
         .into_iter()
-        .filter_map(|(chars, weight)| {
-            if attempts.iter().all(|a| match_attempt(a, chars))
-                && rules.iter().all(|r| match_rule(r, chars))
+        .filter_map(|(word, weight)| {
+            if guesses.iter().all(|a| match_guess(a, word))
+                && rules.iter().all(|r| match_rule(r, word))
             {
-                Some(WeightedWord { chars, weight })
+                Some(WeightedWord { word, weight })
             } else {
                 None
             }

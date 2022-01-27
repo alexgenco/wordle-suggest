@@ -35,11 +35,11 @@ Is represented like this:
 ^sc?r^ap
 ```
 
-Assume this file is called `attempts.txt`. Re-run `wordle-suggest` and point it
+Assume this file is called `guesses.txt`. Re-run `wordle-suggest` and point it
 to this file to get a new set of suggestions:
 
 ```shell
-$ wordle-suggest -f ./attempts.txt
+$ wordle-suggest -f ./guesses.txt
 salar
 sonar
 solar
@@ -52,7 +52,7 @@ simar
 sekar
 ```
 
-Continue adding results to the attempts file and re-running `wordle-suggest`
+Continue adding results to the guesses file and re-running `wordle-suggest`
 until you've solved the puzzle!
 
 See `wordle-suggest -h` for more usage options.

@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
-pub type Attempt = [CharAttempt; 5];
+pub type Guess = [CharGuess; 5];
 pub type Word = [char; 5];
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum CharAttempt {
+pub enum CharGuess {
     Here(char),
     Elsewhere(char),
     Nowhere(char),
@@ -18,9 +18,9 @@ pub enum Rule {
 }
 
 impl Rule {
-    pub fn defaults(rules: Vec<Self>, nattempts: usize) -> Vec<Self> {
-        // On first attempt, default to no repeating characters
-        if nattempts == 0 && rules.is_empty() {
+    pub fn defaults(rules: Vec<Self>, nguesses: usize) -> Vec<Self> {
+        // On first guess, default to no repeating characters
+        if nguesses == 0 && rules.is_empty() {
             vec![Rule::Unique]
         } else {
             rules
@@ -28,43 +28,43 @@ impl Rule {
     }
 }
 
-pub fn match_attempt(attempt: &Attempt, chars: [char; 5]) -> bool {
-    attempt.iter().enumerate().all(|(i, ca)| match ca {
-        CharAttempt::Here(c) => chars[i] == *c,
-        CharAttempt::Elsewhere(c) => chars.contains(c) && chars[i] != *c,
-        CharAttempt::Nowhere(c) => {
+pub fn match_guess(guess: &Guess, word: Word) -> bool {
+    guess.iter().enumerate().all(|(i, ca)| match ca {
+        CharGuess::Here(c) => word[i] == *c,
+        CharGuess::Elsewhere(c) => word.contains(c) && word[i] != *c,
+        CharGuess::Nowhere(c) => {
             // This isn't a strict `!word.contains(*c)` because in the case of repeated
             // characters, one of the repeats can be marked `Nowhere` if the other is marked
             // `Elsewhere`.
-            chars[i] != *c
+            word[i] != *c
         }
     })
 }
 
-pub fn match_rule(rule: &Rule, chars: [char; 5]) -> bool {
+pub fn match_rule(rule: &Rule, word: Word) -> bool {
     match rule {
-        Rule::Unique => chars.into_iter().collect::<HashSet<char>>().len() == chars.len(),
+        Rule::Unique => word.into_iter().collect::<HashSet<char>>().len() == word.len(),
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{Rule, match_rule};
+    use crate::{match_rule, Rule};
 
-    use super::{match_attempt, CharAttempt};
+    use super::{match_guess, CharGuess};
 
     #[test]
-    fn test_attempt_matches() {
-        let attempt = [
-            CharAttempt::Nowhere('i'),
-            CharAttempt::Elsewhere('c'),
-            CharAttempt::Here('i'),
-            CharAttempt::Nowhere('n'),
-            CharAttempt::Nowhere('g'),
+    fn test_guess_matches() {
+        let guess = [
+            CharGuess::Nowhere('i'),
+            CharGuess::Elsewhere('c'),
+            CharGuess::Here('i'),
+            CharGuess::Nowhere('n'),
+            CharGuess::Nowhere('g'),
         ];
 
-        assert!(match_attempt(&attempt, ['c', 'r', 'i', 'm', 'p']));
-        assert!(!match_attempt(&attempt, ['c', 'r', 'u', 's', 't']));
+        assert!(match_guess(&guess, ['c', 'r', 'i', 'm', 'p']));
+        assert!(!match_guess(&guess, ['c', 'r', 'u', 's', 't']));
     }
 
     #[test]

@@ -19,7 +19,7 @@ struct Opts {
         long,
         parse(from_os_str),
         display_order = 0,
-        help = "Path to attempts file. Pass `-` for STDIN."
+        help = "Path to guesses file. Pass `-` for STDIN."
     )]
     file: Option<PathBuf>,
 
@@ -56,15 +56,15 @@ struct Opts {
 fn main() -> Result<()> {
     let Opts { file, limit, all, rules } = Opts::parse();
 
-    let attempts = match file {
+    let guesses = match file {
         Some(path) => parser::parse_reader(input_reader(path)?)?,
         None => Vec::new(),
     };
 
-    let rules = Rule::defaults(rules, attempts.len());
+    let rules = Rule::defaults(rules, guesses.len());
     let limit = if all { None } else { Some(limit) };
 
-    for word in words::filtered_words(&attempts, &rules, limit) {
+    for word in words::filtered_words(&guesses, &rules, limit) {
         println!("{}", word);
     }
 

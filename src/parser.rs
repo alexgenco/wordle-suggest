@@ -6,15 +6,15 @@ use nom::{
     branch::alt, bytes::complete::tag, character::complete::anychar, combinator::map, multi::count,
     sequence::preceded, IResult,
 };
-use wordle_suggest::{Attempt, CharAttempt};
+use wordle_suggest::{CharGuess, Guess};
 
-fn parse_line<'a>(line: &'a str) -> IResult<&'a str, Attempt> {
+fn parse_line<'a>(line: &'a str) -> IResult<&'a str, Guess> {
     map(
         count(
             alt((
-                map(preceded(tag("^"), anychar), CharAttempt::Here),
-                map(preceded(tag("?"), anychar), CharAttempt::Elsewhere),
-                map(anychar, CharAttempt::Nowhere),
+                map(preceded(tag("^"), anychar), CharGuess::Here),
+                map(preceded(tag("?"), anychar), CharGuess::Elsewhere),
+                map(anychar, CharGuess::Nowhere),
             )),
             5,
         ),
@@ -22,39 +22,39 @@ fn parse_line<'a>(line: &'a str) -> IResult<&'a str, Attempt> {
     )(line)
 }
 
-pub fn parse_reader(rd: Box<dyn BufRead>) -> Result<Vec<Attempt>> {
-    let mut attempts = Vec::new();
+pub fn parse_reader(rd: Box<dyn BufRead>) -> Result<Vec<Guess>> {
+    let mut guesses = Vec::new();
 
     for (i, line) in rd.lines().enumerate() {
         let line = line.context("Failed to read line")?;
 
         match parse_line(&line) {
-            Ok((_, attempt)) => attempts.push(attempt),
+            Ok((_, guess)) => guesses.push(guess),
             Err(nom::Err::Incomplete(_)) => bail!("Parse error: EOF on line {}", i + 1),
             Err(nom::Err::Failure(e)) => bail!("Parse error: failure on line {}: {:?}", i + 1, e),
             Err(nom::Err::Error(e)) => eprintln!("[WARN] parsing: {:?}", e),
         }
     }
 
-    Ok(attempts)
+    Ok(guesses)
 }
 
 #[cfg(test)]
 mod test {
-    use super::{parse_line, CharAttempt};
+    use super::{parse_line, CharGuess};
 
     #[test]
-    fn test_parse_attempt() {
+    fn test_parse_guess() {
         match parse_line("^boa?ts") {
-            Ok((rest, attempts)) => {
+            Ok((rest, guesses)) => {
                 assert_eq!(
-                    attempts,
+                    guesses,
                     [
-                        CharAttempt::Here('b'),
-                        CharAttempt::Nowhere('o'),
-                        CharAttempt::Nowhere('a'),
-                        CharAttempt::Elsewhere('t'),
-                        CharAttempt::Nowhere('s'),
+                        CharGuess::Here('b'),
+                        CharGuess::Nowhere('o'),
+                        CharGuess::Nowhere('a'),
+                        CharGuess::Elsewhere('t'),
+                        CharGuess::Nowhere('s'),
                     ]
                 );
 
