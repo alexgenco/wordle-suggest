@@ -1,6 +1,6 @@
 use assert_cmd::prelude::*;
 use assert_fs::prelude::*;
-use eyre::Result;
+use anyhow::Result;
 use predicates::prelude::*;
 use std::process::Command;
 

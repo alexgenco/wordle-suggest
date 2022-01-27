@@ -1,6 +1,6 @@
 use std::{collections::BinaryHeap, iter};
 
-use crate::attempt::Attempt;
+use crate::attempt::{matches, Attempt};
 
 mod weights {
     include!(concat!(env!("OUT_DIR"), "/weights.rs"));
@@ -31,7 +31,7 @@ pub fn filtered_words(
     let mut heap: BinaryHeap<Word> = weights::WEIGHTS
         .into_iter()
         .filter_map(|(chars, weight)| {
-            if attempts.iter().all(|a| a.matches(chars)) {
+            if attempts.iter().all(|a| matches(a, chars)) {
                 Some(Word { chars, weight })
             } else {
                 None
