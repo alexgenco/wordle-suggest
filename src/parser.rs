@@ -7,7 +7,7 @@ use nom::{
     sequence::preceded, IResult,
 };
 
-use crate::attempt::{CharAttempt, Attempt};
+use crate::attempt::{Attempt, CharAttempt};
 
 fn parse_line<'a>(line: &'a str) -> IResult<&'a str, Attempt> {
     map(

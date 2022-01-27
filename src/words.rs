@@ -24,10 +24,7 @@ impl Into<String> for Word {
     }
 }
 
-pub fn filtered_words(
-    attempts: &Vec<Attempt>,
-    limit: Option<usize>,
-) -> impl Iterator<Item = String> {
+pub fn filtered_words(attempts: &Vec<Attempt>, n: Option<usize>) -> impl Iterator<Item = String> {
     let mut heap: BinaryHeap<Word> = weights::WEIGHTS
         .into_iter()
         .filter_map(|(chars, weight)| {
@@ -39,7 +36,7 @@ pub fn filtered_words(
         })
         .collect();
 
-    let limit = limit.unwrap_or_else(|| heap.len());
+    let limit = n.unwrap_or_else(|| heap.len());
 
     iter::from_fn(move || heap.pop().map(Into::into)).take(limit)
 }
