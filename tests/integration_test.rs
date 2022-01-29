@@ -1,7 +1,12 @@
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use assert_fs::{prelude::*, NamedTempFile};
-use predicates::prelude::*;
+use assert_fs::{fixture::FileWriteStr, NamedTempFile};
+use predicates::{
+    boolean::{NotPredicate, PredicateBooleanExt},
+    ord::eq,
+    prelude::predicate::str::contains,
+    str::ContainsPredicate,
+};
 use std::process::Command;
 
 #[test]
@@ -11,7 +16,7 @@ fn happy_path() -> Result<()> {
         .success()
         .stdout(
             // Words with repeated characters excluded by default on first guess
-            predicate::str::contains("\nmares\n").and(predicate::str::contains("\nsales\n").not()),
+            contains("\nmares\n").and(excludes("\nsales\n")),
         );
 
     let (path, file) = tmp_file("attempts.txt")?;
@@ -24,16 +29,16 @@ fn happy_path() -> Result<()> {
         .success()
         .stdout(
             // After first guess, repeated characters are returned by default
-            predicate::str::contains("\nsorra\n"),
+            contains("\nsorra\n"),
         );
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-f", &path, "-r", "unique"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("\nsoapy\n").and(
+        .stdout(contains("\nsoapy\n").and(
             // Repeated characters are disallowed with explicit `-r unique`
-            predicate::str::contains("\nsorra\n").not(),
+            excludes("\nsorra\n"),
         ));
 
     file.write_str("^s^u?r^al\n")?;
@@ -42,7 +47,7 @@ fn happy_path() -> Result<()> {
         .args(["-f", &path])
         .assert()
         .success()
-        .stdout(predicate::eq("sugar\n"));
+        .stdout(eq("sugar\n"));
 
     Ok(())
 }
@@ -52,4 +57,8 @@ fn tmp_file(basename: &str) -> Result<(String, NamedTempFile)> {
     let path = file.to_string_lossy().into();
 
     Ok((path, file))
+}
+
+fn excludes(s: &str) -> NotPredicate<ContainsPredicate, str> {
+    contains(s).not()
 }
