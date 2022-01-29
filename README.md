@@ -23,8 +23,8 @@ syntax:
 
 | Syntax | Meaning                                   |
 | ------ | ----------------------------------------- |
-| `^a`   | `a` is in the correct position (green)    |
-| `?b`   | `b` is in the incorrect position (yellow) |
+| `a^`   | `a` is in the correct position (green)    |
+| `b?`   | `b` is in the incorrect position (yellow) |
 | `c`    | `c` is not in the word (none)             |
 
 For example, this result:
@@ -34,7 +34,7 @@ For example, this result:
 Is represented like this:
 
 ```
-^sc?r^ap
+s^cr?a^p
 ```
 
 Assume this file is called `guesses.txt`. Re-run `wordle-suggest` and point it
