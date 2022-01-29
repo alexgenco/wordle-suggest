@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Parser;
 use wordle_suggest::{default_rules, Rule};
 
@@ -62,10 +62,7 @@ fn main() -> Result<()> {
     } = Opts::parse();
 
     let guesses = match file {
-        Some(path) => {
-            let rd = input_reader(path).context("IO error")?;
-            parser::parse_reader(rd).context("Parse error")?
-        }
+        Some(path) => parser::parse_reader(input_reader(path)?)?,
         None => Vec::new(),
     };
 

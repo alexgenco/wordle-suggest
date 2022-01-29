@@ -6,16 +6,16 @@ Run without arguments to get a list of good starter words:
 
 ```shell
 $ wordle-suggest
-sanes
-sales
-sores
 cares
 bares
-sates
 tares
 pares
-sones
-seres
+canes
+mares
+banes
+dares
+fares
+lares
 ```
 
 Enter one into the puzzle and write the result to a file using the following
