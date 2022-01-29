@@ -21,9 +21,11 @@ tires
 Enter one into the puzzle and write the result to a file using the following
 syntax:
 
-- `^x`: `x` is in the correct position (green)
-- `?x`: `x` is in the incorrect position (yellow)
-- `x`: `x` is not in the word (none)
+| Syntax | Meaning                                   |
+| ------ | ----------------------------------------- |
+| `^a`   | `a` is in the correct position (green)    |
+| `?b`   | `b` is in the incorrect position (yellow) |
+| `c`    | `c` is not in the word (none)             |
 
 For example, this result:
 
