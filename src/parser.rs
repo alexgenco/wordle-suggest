@@ -8,7 +8,7 @@ use nom::{
     character::complete::satisfy,
     combinator::{eof, map, map_res},
     multi::count,
-    sequence::{preceded, terminated},
+    sequence::terminated,
     IResult,
 };
 use wordle_suggest::{CharGuess, Guess};
@@ -38,8 +38,8 @@ fn parse_line<'a>(input: &'a str) -> IResult<&'a str, Guess> {
 
 fn parse_char<'a>(input: &'a str) -> IResult<&'a str, CharGuess> {
     alt((
-        map(preceded(tag("^"), any_alpha), CharGuess::Here),
-        map(preceded(tag("?"), any_alpha), CharGuess::Elsewhere),
+        map(terminated(any_alpha, tag("^")), CharGuess::Here),
+        map(terminated(any_alpha, tag("?")), CharGuess::Elsewhere),
         map(any_alpha, CharGuess::Nowhere),
     ))(input)
 }
@@ -62,7 +62,7 @@ mod test {
 
     #[test]
     fn test_parse_reader_ok() {
-        let guesses = parse_reader(rd("^boa?ts\ns^a?les\n")).unwrap();
+        let guesses = parse_reader(rd("b^oat?s\nsa^l?es\n")).unwrap();
 
         assert_eq!(
             guesses,
@@ -87,7 +87,7 @@ mod test {
 
     #[test]
     fn test_parse_reader_no_newline() {
-        let guesses = parse_reader(rd("^boa?ts")).unwrap();
+        let guesses = parse_reader(rd("b^oat?s")).unwrap();
 
         assert_eq!(
             guesses,
@@ -103,7 +103,7 @@ mod test {
 
     #[test]
     fn test_parse_reader_blank_line() {
-        let guesses = parse_reader(rd("^boa?ts\n\n")).unwrap();
+        let guesses = parse_reader(rd("b^oat?s\n\n")).unwrap();
 
         assert_eq!(
             guesses,
@@ -119,23 +119,23 @@ mod test {
 
     #[test]
     fn test_parse_reader_incomplete_line() {
-        let error = parse_reader(rd("^boa?t\n")).unwrap_err();
+        let error = parse_reader(rd("b^oat?\n")).unwrap_err();
 
-        assert_eq!(error.to_string(), "Parse error on line 1: \"^boa?t\"");
+        assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat?\"");
     }
 
     #[test]
     fn test_parse_reader_too_long_line() {
-        let error = parse_reader(rd("^boa?tsx\n")).unwrap_err();
+        let error = parse_reader(rd("b^oat?sx\n")).unwrap_err();
 
-        assert_eq!(error.to_string(), "Parse error on line 1: \"^boa?tsx\"");
+        assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat?sx\"");
     }
 
     #[test]
     fn test_parse_reader_invalid_character() {
-        let error = parse_reader(rd("^boa!t\n")).unwrap_err();
+        let error = parse_reader(rd("b^oat!s\n")).unwrap_err();
 
-        assert_eq!(error.to_string(), "Parse error on line 1: \"^boa!t\"");
+        assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat!s\"");
     }
 
     fn rd(content: &'static str) -> Box<dyn BufRead> {

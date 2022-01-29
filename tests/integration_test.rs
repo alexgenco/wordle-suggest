@@ -16,12 +16,12 @@ fn happy_path() -> Result<()> {
         .success()
         .stdout(
             // Words with repeated characters excluded by default on first guess
-            contains("\nmares\n").and(excludes("\nsales\n")),
+            contains("tones\n").and(excludes("\nsales\n")),
         );
 
     let (path, file) = tmp_file("attempts.txt")?;
 
-    file.write_str("^s?ales\n")?;
+    file.write_str("s^al?es\n")?;
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-f", &path, "-n", "50"])
@@ -29,19 +29,19 @@ fn happy_path() -> Result<()> {
         .success()
         .stdout(
             // After first guess, repeated characters are returned by default
-            contains("\nsorra\n"),
+            contains("\nshell\n"),
         );
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-f", &path, "-r", "unique"])
         .assert()
         .success()
-        .stdout(contains("\nsoapy\n").and(
+        .stdout(contains("\nscale\n").and(
             // Repeated characters are disallowed with explicit `-r unique`
-            excludes("\nsorra\n"),
+            excludes("\nshell\n"),
         ));
 
-    file.write_str("^s^u?r^al\n")?;
+    file.write_str("s^u^r?a^l\n")?;
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-f", &path])

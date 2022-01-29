@@ -13,8 +13,11 @@ pub enum CharGuess {
 #[derive(Clone, Debug, PartialEq, clap::ArgEnum)]
 #[clap(rename_all = "lower")]
 pub enum Rule {
-    #[clap(aliases(["norepeats", "nr"]))]
+    #[clap(aliases(["norepeats"]))]
     Unique,
+
+    #[clap(aliases(["repeats"]))]
+    Repeats,
 }
 
 pub fn default_rules(specified: Vec<Rule>, nguesses: usize) -> Vec<Rule> {
@@ -40,8 +43,11 @@ pub fn match_guess(guess: &Guess, word: Word) -> bool {
 }
 
 pub fn match_rule(rule: &Rule, word: Word) -> bool {
+    let charset: HashSet<char> = word.into_iter().collect();
+
     match rule {
-        Rule::Unique => word.into_iter().collect::<HashSet<char>>().len() == word.len(),
+        Rule::Unique => charset.len() == word.len(),
+        Rule::Repeats => charset.len() < word.len(),
     }
 }
 
