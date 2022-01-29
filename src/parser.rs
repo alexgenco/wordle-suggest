@@ -1,15 +1,20 @@
 use std::io::BufRead;
 
-use anyhow::{bail, Context, Result};
+use anyhow::Result;
 
 use nom::{
-    branch::alt, bytes::complete::tag, character::complete::anychar, combinator::map, multi::count,
-    sequence::preceded, IResult,
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::anychar,
+    combinator::{map, map_res},
+    multi::count,
+    sequence::preceded,
+    IResult,
 };
 use wordle_suggest::{CharGuess, Guess};
 
 fn parse_line<'a>(line: &'a str) -> IResult<&'a str, Guess> {
-    map(
+    map_res(
         count(
             alt((
                 map(preceded(tag("^"), anychar), CharGuess::Here),
@@ -18,22 +23,16 @@ fn parse_line<'a>(line: &'a str) -> IResult<&'a str, Guess> {
             )),
             5,
         ),
-        |cas| cas.try_into().unwrap(),
+        |cas| cas.try_into(),
     )(line)
 }
 
-pub fn parse_reader(rd: Box<dyn BufRead>) -> Result<Vec<Guess>> {
+pub fn parse_reader<'a>(rd: Box<dyn BufRead>) -> Result<Vec<Guess>> {
     let mut guesses = Vec::new();
 
-    for (i, line) in rd.lines().enumerate() {
-        let line = line.context("Failed to read line")?;
-
-        match parse_line(&line) {
-            Ok((_, guess)) => guesses.push(guess),
-            Err(nom::Err::Incomplete(_)) => bail!("Parse error: EOF on line {}", i + 1),
-            Err(nom::Err::Failure(e)) => bail!("Parse error: failure on line {}: {:?}", i + 1, e),
-            Err(nom::Err::Error(e)) => eprintln!("[WARN] parsing: {:?}", e),
-        }
+    for line in rd.lines() {
+        let (_, guess) = parse_line(&line?).map_err(|e| e.to_owned())?;
+        guesses.push(guess);
     }
 
     Ok(guesses)
@@ -41,26 +40,69 @@ pub fn parse_reader(rd: Box<dyn BufRead>) -> Result<Vec<Guess>> {
 
 #[cfg(test)]
 mod test {
-    use super::{parse_line, CharGuess};
+    use std::io::{BufRead, BufReader};
+
+    use super::{parse_reader, CharGuess};
 
     #[test]
-    fn test_parse_guess() {
-        match parse_line("^boa?ts") {
-            Ok((rest, guesses)) => {
-                assert_eq!(
-                    guesses,
-                    [
-                        CharGuess::Here('b'),
-                        CharGuess::Nowhere('o'),
-                        CharGuess::Nowhere('a'),
-                        CharGuess::Elsewhere('t'),
-                        CharGuess::Nowhere('s'),
-                    ]
-                );
+    fn test_parse_reader_empty() {
+        let guesses = parse_reader(rd("")).unwrap();
+        assert!(guesses.is_empty());
+    }
 
-                assert_eq!("", rest);
-            }
-            e => panic!("{:?}", e),
-        }
+    #[test]
+    fn test_parse_reader_ok() {
+        let guesses = parse_reader(rd("^boa?ts\ns^a?les\n")).unwrap();
+
+        assert_eq!(
+            guesses,
+            vec![
+                [
+                    CharGuess::Here('b'),
+                    CharGuess::Nowhere('o'),
+                    CharGuess::Nowhere('a'),
+                    CharGuess::Elsewhere('t'),
+                    CharGuess::Nowhere('s'),
+                ],
+                [
+                    CharGuess::Nowhere('s'),
+                    CharGuess::Here('a'),
+                    CharGuess::Elsewhere('l'),
+                    CharGuess::Nowhere('e'),
+                    CharGuess::Nowhere('s'),
+                ]
+            ],
+        );
+    }
+
+    #[test]
+    fn test_parse_reader_blank_line() {
+        let guesses = parse_reader(rd("^boa?ts\n\n")).unwrap();
+
+        assert_eq!(
+            guesses,
+            vec![[
+                CharGuess::Here('b'),
+                CharGuess::Nowhere('o'),
+                CharGuess::Nowhere('a'),
+                CharGuess::Elsewhere('t'),
+                CharGuess::Nowhere('s'),
+            ],]
+        );
+    }
+
+    #[test]
+    fn test_parse_reader_incomplete_line() {
+        todo!()
+    }
+
+    #[test]
+    fn test_parse_reader_invalid_character() {
+        todo!()
+    }
+
+    fn rd(content: &'static str) -> Box<dyn BufRead> {
+        let rd = BufReader::new(content.as_bytes());
+        Box::new(rd)
     }
 }

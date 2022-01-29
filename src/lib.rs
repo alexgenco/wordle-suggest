@@ -17,14 +17,12 @@ pub enum Rule {
     Unique,
 }
 
-impl Rule {
-    pub fn defaults(rules: Vec<Self>, nguesses: usize) -> Vec<Self> {
-        // On first guess, default to no repeating characters
-        if nguesses == 0 && rules.is_empty() {
-            vec![Rule::Unique]
-        } else {
-            rules
-        }
+pub fn default_rules(specified: Vec<Rule>, nguesses: usize) -> Vec<Rule> {
+    // On first guess, default to no repeating characters
+    if nguesses == 0 && specified.is_empty() {
+        vec![Rule::Unique]
+    } else {
+        specified
     }
 }
 

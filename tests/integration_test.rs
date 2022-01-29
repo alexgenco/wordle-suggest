@@ -1,13 +1,11 @@
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use assert_fs::prelude::*;
+use assert_fs::{prelude::*, NamedTempFile};
 use predicates::prelude::*;
 use std::process::Command;
 
 #[test]
 fn happy_path() -> Result<()> {
-    let guesses_file = assert_fs::NamedTempFile::new("guesses.txt")?;
-
     Command::cargo_bin("wordle-suggest")?
         .assert()
         .success()
@@ -16,10 +14,12 @@ fn happy_path() -> Result<()> {
             predicate::str::contains("\nmares\n").and(predicate::str::contains("\nsales\n").not()),
         );
 
-    guesses_file.write_str("^s?ales\n")?;
+    let (path, file) = tmp_file("attempts.txt")?;
+
+    file.write_str("^s?ales\n")?;
 
     Command::cargo_bin("wordle-suggest")?
-        .args(["-f", guesses_file.path().to_str().unwrap(), "-n", "50"])
+        .args(["-f", &path, "-n", "50"])
         .assert()
         .success()
         .stdout(
@@ -28,7 +28,7 @@ fn happy_path() -> Result<()> {
         );
 
     Command::cargo_bin("wordle-suggest")?
-        .args(["-f", guesses_file.path().to_str().unwrap(), "-r", "unique"])
+        .args(["-f", &path, "-r", "unique"])
         .assert()
         .success()
         .stdout(predicate::str::contains("\nsoapy\n").and(
@@ -36,13 +36,20 @@ fn happy_path() -> Result<()> {
             predicate::str::contains("\nsorra\n").not(),
         ));
 
-    guesses_file.write_str("^s^u?r^al\n")?;
+    file.write_str("^s^u?r^al\n")?;
 
     Command::cargo_bin("wordle-suggest")?
-        .args(["-f", guesses_file.path().to_str().unwrap()])
+        .args(["-f", &path])
         .assert()
         .success()
         .stdout(predicate::eq("sugar\n"));
 
     Ok(())
+}
+
+fn tmp_file(basename: &str) -> Result<(String, NamedTempFile)> {
+    let file = assert_fs::NamedTempFile::new(basename)?;
+    let path = file.to_string_lossy().into();
+
+    Ok((path, file))
 }

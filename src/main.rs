@@ -4,9 +4,9 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
-use wordle_suggest::Rule;
+use wordle_suggest::{default_rules, Rule};
 
 mod parser;
 mod words;
@@ -54,14 +54,22 @@ struct Opts {
 }
 
 fn main() -> Result<()> {
-    let Opts { file, limit, all, rules } = Opts::parse();
+    let Opts {
+        file,
+        limit,
+        all,
+        rules,
+    } = Opts::parse();
 
     let guesses = match file {
-        Some(path) => parser::parse_reader(input_reader(path)?)?,
+        Some(path) => {
+            let rd = input_reader(path).context("IO error")?;
+            parser::parse_reader(rd).context("Parse error")?
+        }
         None => Vec::new(),
     };
 
-    let rules = Rule::defaults(rules, guesses.len());
+    let rules = default_rules(rules, guesses.len());
     let limit = if all { None } else { Some(limit) };
 
     for word in words::filtered_words(&guesses, &rules, limit) {
