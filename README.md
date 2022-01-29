@@ -6,16 +6,16 @@ Run without arguments to get a list of good starter words:
 
 ```shell
 $ wordle-suggest
-cares
-bares
-tares
-pares
-canes
-mares
-banes
-dares
+tones
+bones
+tales
 fares
-lares
+lanes
+males
+wales
+tries
+dates
+tires
 ```
 
 Enter one into the puzzle and write the result to a file using the following
@@ -40,16 +40,8 @@ to this file to get a new set of suggestions:
 
 ```shell
 $ wordle-suggest -f ./guesses.txt
-salar
-sonar
 solar
-safar
-sowar
-sofar
-sitar
-segar
-simar
-sekar
+sugar
 ```
 
 Continue adding results to the guesses file and re-running `wordle-suggest`
