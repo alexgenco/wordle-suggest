@@ -1,6 +1,6 @@
 use std::{collections::BinaryHeap, iter};
 
-use wordle_suggest::{match_guess, Guess, Rule, match_rule, Word};
+use wordle_suggest::{match_guess, match_rule, Guess, Rule, Word};
 
 mod weights {
     include!(concat!(env!("OUT_DIR"), "/weights.rs"));
