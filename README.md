@@ -6,16 +6,16 @@ Run without arguments to get a list of good starter words:
 
 ```shell
 $ wordle-suggest
-tones
-bones
-tales
-fares
-lanes
-males
-wales
-tries
-dates
-tires
+carey
+casey
+money
+salem
+marie
+saver
+karen
+saved
+safer
+panel
 ```
 
 Enter one into the puzzle and write the result to a file using the following
@@ -44,6 +44,7 @@ to this file to get a new set of suggestions:
 $ wordle-suggest -f ./guesses.txt
 solar
 sugar
+# ...
 ```
 
 Continue adding results to the guesses file and re-running `wordle-suggest`
@@ -55,5 +56,7 @@ See `wordle-suggest -h` for more usage options.
 
 The words are stored in a priority queue (a `BinaryHeap` specifically), based
 on the frequency of each letter in its specific position compared to the entire
-word list ([`words.txt`](/words.txt)). So the returned words are sorted by
-their probability of having their letters in the correct positions.
+word list ([`words/all.txt`](words/all.txt)), as well as its presence in a list
+of common words ([`words/common.txt`](words/common.txt)). So the returned words
+are sorted by their probability of having their letters in the correct
+positions, with common words appearing first.
