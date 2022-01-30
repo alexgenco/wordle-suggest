@@ -1,4 +1,7 @@
-use std::{collections::{HashSet, BinaryHeap}, iter};
+use std::{
+    collections::{BinaryHeap, HashSet},
+    iter,
+};
 
 mod weights {
     include!(concat!(env!("OUT_DIR"), "/weights.rs"));
@@ -35,12 +38,16 @@ impl Into<String> for WeightedWord {
 pub fn filtered_words(
     guesses: &Vec<Guess>,
     unique: bool,
+    singular: bool,
     limit: Option<usize>,
 ) -> impl Iterator<Item = String> {
     let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
         .into_iter()
         .filter_map(|(word, weight)| {
-            if satisfies_guesses(word, guesses) && satisfies_uniqueness(word, unique) {
+            if satisfies_guesses(word, guesses)
+                && satisfies_uniqueness(word, unique)
+                && satisfies_singular(word, singular)
+            {
                 Some(WeightedWord { word, weight })
             } else {
                 None
@@ -71,6 +78,14 @@ fn satisfies_guesses(word: Word, guesses: &Vec<Guess>) -> bool {
 fn satisfies_uniqueness(word: Word, unique: bool) -> bool {
     if unique {
         HashSet::<char>::from_iter(word).len() == word.len()
+    } else {
+        true
+    }
+}
+
+fn satisfies_singular(word: Word, singular: bool) -> bool {
+    if singular {
+        word[4] != 's'
     } else {
         true
     }

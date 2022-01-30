@@ -6,6 +6,8 @@ use std::{
 
 use anyhow::Result;
 use clap::Parser;
+#[cfg(feature = "regex")]
+use regex::Regex;
 
 mod parser;
 
@@ -48,6 +50,15 @@ struct Opts {
         help = "Exclude words with repeated characters"
     )]
     unique: Option<bool>,
+
+    #[clap(
+        short,
+        long,
+        display_order = 4,
+        default_missing_value = "true",
+        help = "Exclude words that end in 's'"
+    )]
+    singular: Option<bool>,
 }
 
 fn main() -> Result<()> {
@@ -56,7 +67,7 @@ fn main() -> Result<()> {
         limit,
         all,
         unique,
-        ..
+        singular,
     } = Opts::parse();
 
     let guesses = match file {
@@ -64,10 +75,12 @@ fn main() -> Result<()> {
         None => Vec::new(),
     };
 
-    let unique = unique.unwrap_or(guesses.is_empty());
+    let first_guess = guesses.is_empty();
+    let unique = unique.unwrap_or(first_guess);
+    let singular = singular.unwrap_or(first_guess);
     let limit = if all { None } else { Some(limit) };
 
-    for word in wordle_suggest::filtered_words(&guesses, unique, limit) {
+    for word in wordle_suggest::filtered_words(&guesses, unique, singular, limit) {
         println!("{}", word);
     }
 
