@@ -34,23 +34,16 @@ fn main() {
     }
 
     let mut rust = format!(
-        "pub static WEIGHTS: [([char; 5], usize); {}] = [",
+        "pub static WEIGHTS: [([char; 5], usize, bool); {}] = [",
         words.len()
     );
 
-    let word_count = words.len();
-
     for word in &words {
-        let init = if common_words.contains(word) {
-            // Ensure common words are always on top
-            word_count
-        } else {
-            0
-        };
-
-        let weight = word.chars().enumerate().fold(init, |acc, (i, c)| {
+        let weight = word.chars().enumerate().fold(0, |acc, (i, c)| {
             acc + char_weights.get(&c).map(|arr| arr[i]).unwrap_or(0)
         });
+
+        let common = common_words.contains(word);
 
         let charstr = word
             .chars()
@@ -58,7 +51,7 @@ fn main() {
             .collect::<Vec<String>>()
             .join(", ");
 
-        rust.push_str(&format!("\n    ([{}], {}),", charstr, weight));
+        rust.push_str(&format!("\n    ([{}], {}, {}),", charstr, weight, common));
     }
 
     rust.push_str("\n];");

@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     collections::{BinaryHeap, HashMap, HashSet},
     iter,
 };
@@ -21,11 +22,16 @@ pub enum CharHint {
 struct WeightedWord {
     word: Word,
     weight: usize,
+    common: bool,
 }
 
 impl PartialOrd for WeightedWord {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.weight.partial_cmp(&other.weight)
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.common == other.common {
+            self.weight.partial_cmp(&other.weight)
+        } else {
+            self.common.partial_cmp(&other.common)
+        }
     }
 }
 
@@ -43,12 +49,16 @@ pub fn filtered_words(
 ) -> impl Iterator<Item = String> {
     let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
         .into_iter()
-        .filter_map(|(word, weight)| {
+        .filter_map(|(word, weight, common)| {
             if satisfies_singular(word, singular)
                 && satisfies_uniqueness(word, unique)
                 && satisfies_hints(word, hints)
             {
-                Some(WeightedWord { word, weight })
+                Some(WeightedWord {
+                    word,
+                    weight,
+                    common,
+                })
             } else {
                 None
             }
@@ -109,7 +119,33 @@ fn satisfies_singular(word: Word, singular: bool) -> bool {
 
 #[cfg(test)]
 mod test {
-    use crate::{satisfies_hint, CharHint};
+    use crate::{satisfies_hint, CharHint, WeightedWord};
+
+    #[test]
+    fn test_weighted_word_ord() {
+        let mut lhs = WeightedWord {
+            word: ['a', 'b', 'c', 'd', 'e'],
+            weight: 0,
+            common: false,
+        };
+
+        let mut rhs = WeightedWord {
+            word: ['a', 'b', 'c', 'd', 'e'],
+            weight: 1,
+            common: false,
+        };
+
+        assert!(lhs < rhs);
+
+        lhs.common = true;
+        assert!(lhs > rhs);
+
+        rhs.common = true;
+        assert!(lhs < rhs);
+
+        rhs.weight = lhs.weight;
+        assert!(lhs == rhs);
+    }
 
     #[test]
     fn test_satisfies_hint() {
