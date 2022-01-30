@@ -28,16 +28,16 @@ fn happy_path() -> Result<()> {
         .assert()
         .success()
         .stdout(
-            // After first guess, repeated characters are returned by default
+            // After first guess, repeated characters are allowed by default
             contains("\nshell\n"),
         );
 
     Command::cargo_bin("wordle-suggest")?
-        .args(["-f", &path, "-r", "unique"])
+        .args(["-f", &path, "--unique"])
         .assert()
         .success()
         .stdout(contains("\nscale\n").and(
-            // Repeated characters are disallowed with explicit `-r unique`
+            // Repeated characters are disallowed with explicit `--unique`
             excludes("\nshell\n"),
         ));
 

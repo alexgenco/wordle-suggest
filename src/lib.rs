@@ -1,4 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::{HashSet, BinaryHeap}, iter};
+
+mod weights {
+    include!(concat!(env!("OUT_DIR"), "/weights.rs"));
+}
 
 pub type Guess = [CharGuess; 5];
 pub type Word = [char; 5];
@@ -10,70 +14,64 @@ pub enum CharGuess {
     Nowhere(char),
 }
 
-#[derive(Clone, Debug, PartialEq, clap::ArgEnum)]
-#[clap(rename_all = "lower")]
-pub enum Rule {
-    #[clap(aliases(["norepeats"]))]
-    Unique,
-
-    #[clap(aliases(["repeats"]))]
-    Repeats,
+#[derive(Debug, Ord, Eq, PartialEq)]
+struct WeightedWord {
+    word: Word,
+    weight: usize,
 }
 
-pub fn default_rules(specified: Vec<Rule>, nguesses: usize) -> Vec<Rule> {
-    // On first guess, default to no repeating characters
-    if nguesses == 0 && specified.is_empty() {
-        vec![Rule::Unique]
-    } else {
-        specified
+impl PartialOrd for WeightedWord {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.weight.partial_cmp(&other.weight)
     }
 }
 
-pub fn match_guess(guess: &Guess, word: Word) -> bool {
-    guess.iter().enumerate().all(|(i, ca)| match ca {
-        CharGuess::Here(c) => word[i] == *c,
-        CharGuess::Elsewhere(c) => word.contains(c) && word[i] != *c,
-        CharGuess::Nowhere(c) => {
-            // This isn't a strict `!word.contains(*c)` because in the case of repeated
-            // characters, one of the repeats can be marked `Nowhere` if the other is marked
-            // `Elsewhere`.
-            word[i] != *c
-        }
+impl Into<String> for WeightedWord {
+    fn into(self) -> String {
+        String::from_iter(self.word)
+    }
+}
+
+pub fn filtered_words(
+    guesses: &Vec<Guess>,
+    unique: bool,
+    limit: Option<usize>,
+) -> impl Iterator<Item = String> {
+    let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
+        .into_iter()
+        .filter_map(|(word, weight)| {
+            if satisfies_guesses(word, guesses) && satisfies_uniqueness(word, unique) {
+                Some(WeightedWord { word, weight })
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let limit = limit.unwrap_or_else(|| heap.len());
+
+    iter::from_fn(move || heap.pop().map(Into::into)).take(limit)
+}
+
+fn satisfies_guesses(word: Word, guesses: &Vec<Guess>) -> bool {
+    guesses.iter().all(|guess| {
+        guess.iter().enumerate().all(|(i, ca)| match ca {
+            CharGuess::Here(c) => word[i] == *c,
+            CharGuess::Elsewhere(c) => word.contains(c) && word[i] != *c,
+            CharGuess::Nowhere(c) => {
+                // This isn't a strict `!word.contains(*c)` because in the case of repeated
+                // characters, one of the repeats can be marked `Nowhere` if the other is marked
+                // `Elsewhere`.
+                word[i] != *c
+            }
+        })
     })
 }
 
-pub fn match_rule(rule: &Rule, word: Word) -> bool {
-    let charset: HashSet<char> = word.into_iter().collect();
-
-    match rule {
-        Rule::Unique => charset.len() == word.len(),
-        Rule::Repeats => charset.len() < word.len(),
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::{match_rule, Rule};
-
-    use super::{match_guess, CharGuess};
-
-    #[test]
-    fn test_guess_matches() {
-        let guess = [
-            CharGuess::Nowhere('i'),
-            CharGuess::Elsewhere('c'),
-            CharGuess::Here('i'),
-            CharGuess::Nowhere('n'),
-            CharGuess::Nowhere('g'),
-        ];
-
-        assert!(match_guess(&guess, ['c', 'r', 'i', 'm', 'p']));
-        assert!(!match_guess(&guess, ['c', 'r', 'u', 's', 't']));
-    }
-
-    #[test]
-    fn test_rule_matches() {
-        assert!(match_rule(&Rule::Unique, ['c', 'r', 'i', 'm', 'p']));
-        assert!(!match_rule(&Rule::Unique, ['c', 'r', 'i', 'c', 'k']));
+fn satisfies_uniqueness(word: Word, unique: bool) -> bool {
+    if unique {
+        HashSet::<char>::from_iter(word).len() == word.len()
+    } else {
+        true
     }
 }

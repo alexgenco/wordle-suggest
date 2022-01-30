@@ -6,10 +6,8 @@ use std::{
 
 use anyhow::Result;
 use clap::Parser;
-use wordle_suggest::{default_rules, Rule};
 
 mod parser;
-mod words;
 
 #[derive(Debug, Parser)]
 #[clap(about = "Get word suggestions for Wordle")]
@@ -19,7 +17,7 @@ struct Opts {
         long,
         parse(from_os_str),
         display_order = 0,
-        help = "Path to guesses file. Pass `-` for STDIN."
+        help = "Path to guesses file, or `-` for STDIN"
     )]
     file: Option<PathBuf>,
 
@@ -43,14 +41,13 @@ struct Opts {
     all: bool,
 
     #[clap(
-        arg_enum,
         short,
         long,
-        multiple_occurrences = true,
         display_order = 3,
-        help = "Additional filtering rules"
+        default_missing_value = "true",
+        help = "Exclude words with repeated characters"
     )]
-    rules: Vec<Rule>,
+    unique: Option<bool>,
 }
 
 fn main() -> Result<()> {
@@ -58,7 +55,8 @@ fn main() -> Result<()> {
         file,
         limit,
         all,
-        rules,
+        unique,
+        ..
     } = Opts::parse();
 
     let guesses = match file {
@@ -66,10 +64,10 @@ fn main() -> Result<()> {
         None => Vec::new(),
     };
 
-    let rules = default_rules(rules, guesses.len());
+    let unique = unique.unwrap_or(guesses.is_empty());
     let limit = if all { None } else { Some(limit) };
 
-    for word in words::filtered_words(&guesses, &rules, limit) {
+    for word in wordle_suggest::filtered_words(&guesses, unique, limit) {
         println!("{}", word);
     }
 
