@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     env,
     fs::{self, File},
     io::{BufRead, BufReader},
@@ -7,12 +7,20 @@ use std::{
 };
 
 fn main() {
-    println!("cargo:rerun-if-changed=words.txt");
+    println!("cargo:rerun-if-changed=words");
 
     let mut words = Vec::new();
+    let mut common_words = HashSet::new();
     let mut char_weights = HashMap::new();
 
-    let words_file = File::open("words.txt").unwrap();
+    let common_words_file = File::open("words/common.txt").unwrap();
+    let rd = BufReader::new(common_words_file);
+
+    for line in rd.lines() {
+        common_words.insert(line.unwrap());
+    }
+
+    let words_file = File::open("words/all.txt").unwrap();
     let rd = BufReader::new(words_file);
 
     for line in rd.lines() {
@@ -30,8 +38,17 @@ fn main() {
         words.len()
     );
 
-    for word in words {
-        let weight = word.chars().enumerate().fold(0, |acc, (i, c)| {
+    let word_count = words.len();
+
+    for word in &words {
+        let init = if common_words.contains(word) {
+            // Ensure common words are always on top
+            word_count
+        } else {
+            0
+        };
+
+        let weight = word.chars().enumerate().fold(init, |acc, (i, c)| {
             acc + char_weights.get(&c).map(|arr| arr[i]).unwrap_or(0)
         });
 
