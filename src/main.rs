@@ -6,8 +6,6 @@ use std::{
 
 use anyhow::Result;
 use clap::Parser;
-#[cfg(feature = "regex")]
-use regex::Regex;
 
 mod parser;
 
@@ -19,7 +17,7 @@ struct Opts {
         long,
         parse(from_os_str),
         display_order = 0,
-        help = "Path to guesses file, or `-` for STDIN"
+        help = "Path to hints file, or `-` for STDIN"
     )]
     file: Option<PathBuf>,
 
@@ -70,17 +68,17 @@ fn main() -> Result<()> {
         singular,
     } = Opts::parse();
 
-    let guesses = match file {
+    let hints = match file {
         Some(path) => parser::parse_reader(input_reader(path)?)?,
         None => Vec::new(),
     };
 
-    let first_guess = guesses.is_empty();
+    let first_guess = hints.is_empty();
     let unique = unique.unwrap_or(first_guess);
     let singular = singular.unwrap_or(first_guess);
     let limit = if all { None } else { Some(limit) };
 
-    for word in wordle_suggest::filtered_words(&guesses, unique, singular, limit) {
+    for word in wordle_suggest::filtered_words(&hints, unique, singular, limit) {
         println!("{}", word);
     }
 

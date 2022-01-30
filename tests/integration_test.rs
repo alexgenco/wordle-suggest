@@ -17,8 +17,7 @@ fn happy_path() -> Result<()> {
         .assert()
         .success()
         .stdout(
-            // Words with repeated characters and plurals are excluded by default on first
-            // guess
+            // Words with repeated characters and plurals are excluded by default on first hint
             contains("money").and(excludes("sales").and(excludes("fares"))),
         );
 
@@ -31,10 +30,8 @@ fn happy_path() -> Result<()> {
         .assert()
         .success()
         .stdout(
-            // Words with repeated characters are allowed after first guess
-            contains("teens")
-                // Plural words are allowed after first guess
-                .and(contains("beans"))
+            // Words with repeated characters and plurals are allowed after first hint
+            contains("signs")
                 // Option `-n 50` ensure we get 50 results back
                 .and(line_count(eq(50))),
         );

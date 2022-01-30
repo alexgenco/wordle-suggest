@@ -37,17 +37,17 @@ Is represented like this:
 s^cr?a^p
 ```
 
-Assume this file is called `guesses.txt`. Re-run `wordle-suggest` and point it
+Assume this file is called `hints.txt`. Re-run `wordle-suggest` and point it
 to this file to get a new set of suggestions:
 
 ```shell
-$ wordle-suggest -f ./guesses.txt
+$ wordle-suggest -f ./hints.txt
 solar
 sugar
 # ...
 ```
 
-Continue adding results to the guesses file and re-running `wordle-suggest`
+Continue adding results to the hints file and re-running `wordle-suggest`
 until you've solved the puzzle!
 
 See `wordle-suggest -h` for more usage options.

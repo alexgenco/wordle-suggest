@@ -11,10 +11,10 @@ use nom::{
     sequence::terminated,
     IResult,
 };
-use wordle_suggest::{CharGuess, Guess};
+use wordle_suggest::{CharHint, Hint};
 
-pub fn parse_reader<'a>(rd: Box<dyn BufRead>) -> Result<Vec<Guess>> {
-    let mut guesses = Vec::new();
+pub fn parse_reader<'a>(rd: Box<dyn BufRead>) -> Result<Vec<Hint>> {
+    let mut hints = Vec::new();
 
     for (i, line) in rd.lines().enumerate() {
         let line = line?.trim().to_string();
@@ -23,24 +23,24 @@ pub fn parse_reader<'a>(rd: Box<dyn BufRead>) -> Result<Vec<Guess>> {
             continue;
         }
 
-        let (_, guess) =
+        let (_, hint) =
             parse_line(&line).map_err(|_| anyhow!("Parse error on line {}: {:?}", i + 1, line))?;
 
-        guesses.push(guess);
+        hints.push(hint);
     }
 
-    Ok(guesses)
+    Ok(hints)
 }
 
-fn parse_line<'a>(input: &'a str) -> IResult<&'a str, Guess> {
+fn parse_line<'a>(input: &'a str) -> IResult<&'a str, Hint> {
     terminated(map_res(count(parse_char, 5), |cas| cas.try_into()), eof)(input)
 }
 
-fn parse_char<'a>(input: &'a str) -> IResult<&'a str, CharGuess> {
+fn parse_char<'a>(input: &'a str) -> IResult<&'a str, CharHint> {
     alt((
-        map(terminated(any_alpha, tag("^")), CharGuess::Here),
-        map(terminated(any_alpha, tag("?")), CharGuess::Elsewhere),
-        map(any_alpha, CharGuess::Nowhere),
+        map(terminated(any_alpha, tag("^")), CharHint::Here),
+        map(terminated(any_alpha, tag("?")), CharHint::Elsewhere),
+        map(any_alpha, CharHint::None),
     ))(input)
 }
 
@@ -52,34 +52,34 @@ fn any_alpha<'a>(input: &'a str) -> IResult<&'a str, char> {
 mod test {
     use std::io::{BufRead, BufReader};
 
-    use super::{parse_reader, CharGuess};
+    use super::{parse_reader, CharHint};
 
     #[test]
     fn test_parse_reader_empty() {
-        let guesses = parse_reader(rd("")).unwrap();
-        assert!(guesses.is_empty());
+        let hints = parse_reader(rd("")).unwrap();
+        assert!(hints.is_empty());
     }
 
     #[test]
     fn test_parse_reader_ok() {
-        let guesses = parse_reader(rd("b^oat?s\nsa^l?es\n")).unwrap();
+        let hints = parse_reader(rd("b^oat?s\nsa^l?es\n")).unwrap();
 
         assert_eq!(
-            guesses,
+            hints,
             vec![
                 [
-                    CharGuess::Here('b'),
-                    CharGuess::Nowhere('o'),
-                    CharGuess::Nowhere('a'),
-                    CharGuess::Elsewhere('t'),
-                    CharGuess::Nowhere('s'),
+                    CharHint::Here('b'),
+                    CharHint::None('o'),
+                    CharHint::None('a'),
+                    CharHint::Elsewhere('t'),
+                    CharHint::None('s'),
                 ],
                 [
-                    CharGuess::Nowhere('s'),
-                    CharGuess::Here('a'),
-                    CharGuess::Elsewhere('l'),
-                    CharGuess::Nowhere('e'),
-                    CharGuess::Nowhere('s'),
+                    CharHint::None('s'),
+                    CharHint::Here('a'),
+                    CharHint::Elsewhere('l'),
+                    CharHint::None('e'),
+                    CharHint::None('s'),
                 ]
             ],
         );
@@ -87,32 +87,32 @@ mod test {
 
     #[test]
     fn test_parse_reader_no_newline() {
-        let guesses = parse_reader(rd("b^oat?s")).unwrap();
+        let hints = parse_reader(rd("b^oat?s")).unwrap();
 
         assert_eq!(
-            guesses,
+            hints,
             vec![[
-                CharGuess::Here('b'),
-                CharGuess::Nowhere('o'),
-                CharGuess::Nowhere('a'),
-                CharGuess::Elsewhere('t'),
-                CharGuess::Nowhere('s'),
+                CharHint::Here('b'),
+                CharHint::None('o'),
+                CharHint::None('a'),
+                CharHint::Elsewhere('t'),
+                CharHint::None('s'),
             ],]
         );
     }
 
     #[test]
     fn test_parse_reader_blank_line() {
-        let guesses = parse_reader(rd("b^oat?s\n\n")).unwrap();
+        let hints = parse_reader(rd("b^oat?s\n\n")).unwrap();
 
         assert_eq!(
-            guesses,
+            hints,
             vec![[
-                CharGuess::Here('b'),
-                CharGuess::Nowhere('o'),
-                CharGuess::Nowhere('a'),
-                CharGuess::Elsewhere('t'),
-                CharGuess::Nowhere('s'),
+                CharHint::Here('b'),
+                CharHint::None('o'),
+                CharHint::None('a'),
+                CharHint::Elsewhere('t'),
+                CharHint::None('s'),
             ],]
         );
     }

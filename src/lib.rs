@@ -1,5 +1,5 @@
 use std::{
-    collections::{BinaryHeap, HashSet},
+    collections::{BinaryHeap, HashMap, HashSet},
     iter,
 };
 
@@ -7,14 +7,14 @@ mod weights {
     include!(concat!(env!("OUT_DIR"), "/weights.rs"));
 }
 
-pub type Guess = [CharGuess; 5];
+pub type Hint = [CharHint; 5];
 pub type Word = [char; 5];
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum CharGuess {
+pub enum CharHint {
     Here(char),
     Elsewhere(char),
-    Nowhere(char),
+    None(char),
 }
 
 #[derive(Debug, Ord, Eq, PartialEq)]
@@ -36,7 +36,7 @@ impl Into<String> for WeightedWord {
 }
 
 pub fn filtered_words(
-    guesses: &Vec<Guess>,
+    hints: &Vec<Hint>,
     unique: bool,
     singular: bool,
     limit: Option<usize>,
@@ -44,9 +44,9 @@ pub fn filtered_words(
     let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
         .into_iter()
         .filter_map(|(word, weight)| {
-            if satisfies_guesses(word, guesses)
+            if satisfies_singular(word, singular)
                 && satisfies_uniqueness(word, unique)
-                && satisfies_singular(word, singular)
+                && satisfies_hints(word, hints)
             {
                 Some(WeightedWord { word, weight })
             } else {
@@ -60,18 +60,34 @@ pub fn filtered_words(
     iter::from_fn(move || heap.pop().map(Into::into)).take(limit)
 }
 
-fn satisfies_guesses(word: Word, guesses: &Vec<Guess>) -> bool {
-    guesses.iter().all(|guess| {
-        guess.iter().enumerate().all(|(i, ca)| match ca {
-            CharGuess::Here(c) => word[i] == *c,
-            CharGuess::Elsewhere(c) => word.contains(c) && word[i] != *c,
-            CharGuess::Nowhere(c) => {
-                // This isn't a strict `!word.contains(*c)` because in the case of repeated
-                // characters, one of the repeats can be marked `Nowhere` if the other is marked
-                // `Elsewhere`.
-                word[i] != *c
+fn satisfies_hints(word: Word, hints: &Vec<Hint>) -> bool {
+    hints.iter().all(|hint| satisfies_hint(word, hint))
+}
+
+fn satisfies_hint(word: Word, hint: &Hint) -> bool {
+    let matched_char_indices =
+        hint.into_iter()
+            .enumerate()
+            .fold(HashMap::new(), |mut acc, (i, cg)| {
+                match cg {
+                    CharHint::Here(c) | CharHint::Elsewhere(c) => {
+                        acc.entry(*c).or_insert(Vec::new()).push(i);
+                    }
+                    CharHint::None(_) => {}
+                }
+                acc
+            });
+
+    hint.iter().enumerate().all(|(i, cg)| match cg {
+        CharHint::Here(c) => word[i] == *c,
+        CharHint::Elsewhere(c) => word.contains(c) && word[i] != *c,
+        CharHint::None(c) => {
+            if let Some(is) = matched_char_indices.get(c) {
+                !is.into_iter().any(|j| *j == i)
+            } else {
+                !word.contains(c)
             }
-        })
+        }
     })
 }
 
@@ -88,5 +104,83 @@ fn satisfies_singular(word: Word, singular: bool) -> bool {
         word[4] != 's'
     } else {
         true
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{satisfies_hint, CharHint};
+
+    #[test]
+    fn test_satisfies_hint() {
+        assert!(
+            satisfies_hint(
+                ['m', 'o', 'n', 'e', 'y'],
+                &[
+                    CharHint::None('q'),
+                    CharHint::None('x'),
+                    CharHint::None('p'),
+                    CharHint::None('z'),
+                    CharHint::None('r'),
+                ]
+            ),
+            "All `None`s are satisfied by a word containing none of those letters"
+        );
+
+        assert!(
+            satisfies_hint(
+                ['m', 'o', 'n', 'e', 'y'],
+                &[
+                    CharHint::Here('m'),
+                    CharHint::Here('o'),
+                    CharHint::Here('n'),
+                    CharHint::Here('e'),
+                    CharHint::Here('y'),
+                ]
+            ),
+            "All `Here`s are satisified by the matching word"
+        );
+
+        assert!(
+            satisfies_hint(
+                ['m', 'o', 'n', 'e', 'y'],
+                &[
+                    CharHint::Elsewhere('y'),
+                    CharHint::None('x'),
+                    CharHint::None('p'),
+                    CharHint::None('z'),
+                    CharHint::None('r'),
+                ]
+            ),
+            "An `Elsewhere` is satisfied with a letter in a different position"
+        );
+
+        assert!(
+            !satisfies_hint(
+                ['a', 'p', 'n', 'i', 'c'],
+                &[
+                    CharHint::Elsewhere('p'),
+                    CharHint::None('a'), // <-
+                    CharHint::Here('n'),
+                    CharHint::Here('i'),
+                    CharHint::Here('c'),
+                ]
+            ),
+            "A single `None` rejects words containing that letter"
+        );
+
+        assert!(
+            satisfies_hint(
+                ['b', 'o', 'a', 't', 's'],
+                &[
+                    CharHint::Here('b'),
+                    CharHint::Elsewhere('a'),
+                    CharHint::None('b'),
+                    CharHint::None('b'),
+                    CharHint::None('y'),
+                ]
+            ),
+            "Repeated hints can be marked `None`"
+        );
     }
 }
