@@ -49,19 +49,13 @@ pub fn filtered_words(
 ) -> impl Iterator<Item = String> {
     let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
         .into_iter()
-        .filter_map(|(word, weight, common)| {
-            if satisfies_singular(word, singular)
-                && satisfies_uniqueness(word, unique)
-                && satisfies_hints(word, hints)
-            {
-                Some(WeightedWord {
-                    word,
-                    weight,
-                    common,
-                })
-            } else {
-                None
-            }
+        .filter(|(word, _, _)| satisfies_singular(word, singular))
+        .filter(|(word, _, _)| satisfies_uniqueness(word, unique))
+        .filter(|(word, _, _)| satisfies_hints(word, hints))
+        .map(|(word, weight, common)| WeightedWord {
+            word,
+            weight,
+            common,
         })
         .collect();
 
@@ -70,11 +64,11 @@ pub fn filtered_words(
     iter::from_fn(move || heap.pop().map(Into::into)).take(limit)
 }
 
-fn satisfies_hints(word: Word, hints: &Vec<Hint>) -> bool {
+fn satisfies_hints(word: &Word, hints: &Vec<Hint>) -> bool {
     hints.iter().all(|hint| satisfies_hint(word, hint))
 }
 
-fn satisfies_hint(word: Word, hint: &Hint) -> bool {
+fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
     let matched_char_indices =
         hint.into_iter()
             .enumerate()
@@ -101,15 +95,15 @@ fn satisfies_hint(word: Word, hint: &Hint) -> bool {
     })
 }
 
-fn satisfies_uniqueness(word: Word, unique: bool) -> bool {
+fn satisfies_uniqueness(word: &Word, unique: bool) -> bool {
     if unique {
-        HashSet::<char>::from_iter(word).len() == word.len()
+        HashSet::<char>::from_iter(*word).len() == word.len()
     } else {
         true
     }
 }
 
-fn satisfies_singular(word: Word, singular: bool) -> bool {
+fn satisfies_singular(word: &Word, singular: bool) -> bool {
     if singular {
         word[4] != 's'
     } else {
@@ -151,7 +145,7 @@ mod test {
     fn test_satisfies_hint() {
         assert!(
             satisfies_hint(
-                ['m', 'o', 'n', 'e', 'y'],
+                &['m', 'o', 'n', 'e', 'y'],
                 &[
                     CharHint::None('q'),
                     CharHint::None('x'),
@@ -165,7 +159,7 @@ mod test {
 
         assert!(
             satisfies_hint(
-                ['m', 'o', 'n', 'e', 'y'],
+                &['m', 'o', 'n', 'e', 'y'],
                 &[
                     CharHint::Here('m'),
                     CharHint::Here('o'),
@@ -179,7 +173,7 @@ mod test {
 
         assert!(
             satisfies_hint(
-                ['m', 'o', 'n', 'e', 'y'],
+                &['m', 'o', 'n', 'e', 'y'],
                 &[
                     CharHint::Elsewhere('y'),
                     CharHint::None('x'),
@@ -193,7 +187,7 @@ mod test {
 
         assert!(
             !satisfies_hint(
-                ['a', 'p', 'n', 'i', 'c'],
+                &['a', 'p', 'n', 'i', 'c'],
                 &[
                     CharHint::Elsewhere('p'),
                     CharHint::None('a'), // <-
@@ -207,7 +201,7 @@ mod test {
 
         assert!(
             satisfies_hint(
-                ['b', 'o', 'a', 't', 's'],
+                &['b', 'o', 'a', 't', 's'],
                 &[
                     CharHint::Here('b'),
                     CharHint::Elsewhere('a'),
