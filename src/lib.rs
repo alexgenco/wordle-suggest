@@ -69,25 +69,20 @@ fn satisfies_hints(word: &Word, hints: &Vec<Hint>) -> bool {
 }
 
 fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
-    let matched_char_indices =
-        hint.into_iter()
-            .enumerate()
-            .fold(HashMap::new(), |mut acc, (i, cg)| {
-                match cg {
-                    CharHint::Here(c) | CharHint::Elsewhere(c) => {
-                        acc.entry(*c).or_insert(Vec::new()).push(i);
-                    }
-                    CharHint::None(_) => {}
-                }
-                acc
-            });
+    let mut last_seen = HashMap::new();
 
-    hint.iter().enumerate().all(|(i, cg)| match cg {
-        CharHint::Here(c) => word[i] == *c,
-        CharHint::Elsewhere(c) => word.contains(c) && word[i] != *c,
+    hint.iter().enumerate().all(|(i, ch)| match ch {
+        CharHint::Here(c) => {
+            last_seen.insert(*c, i);
+            word[i] == *c
+        }
+        CharHint::Elsewhere(c) => {
+            last_seen.insert(*c, i);
+            word[i] != *c && word.contains(c)
+        }
         CharHint::None(c) => {
-            if let Some(is) = matched_char_indices.get(c) {
-                !is.into_iter().any(|j| *j == i)
+            if let Some(j) = last_seen.get(c) {
+                !word[j + 1..].contains(c)
             } else {
                 !word.contains(c)
             }
@@ -142,7 +137,7 @@ mod test {
     }
 
     #[test]
-    fn test_satisfies_hint() {
+    fn test_all_nones() {
         assert!(
             satisfies_hint(
                 &['m', 'o', 'n', 'e', 'y'],
@@ -156,7 +151,10 @@ mod test {
             ),
             "All `None`s are satisfied by a word containing none of those letters"
         );
+    }
 
+    #[test]
+    fn test_all_heres() {
         assert!(
             satisfies_hint(
                 &['m', 'o', 'n', 'e', 'y'],
@@ -170,7 +168,10 @@ mod test {
             ),
             "All `Here`s are satisified by the matching word"
         );
+    }
 
+    #[test]
+    fn test_elsewhere() {
         assert!(
             satisfies_hint(
                 &['m', 'o', 'n', 'e', 'y'],
@@ -184,7 +185,10 @@ mod test {
             ),
             "An `Elsewhere` is satisfied with a letter in a different position"
         );
+    }
 
+    #[test]
+    fn test_single_none() {
         assert!(
             !satisfies_hint(
                 &['a', 'p', 'n', 'i', 'c'],
@@ -198,7 +202,10 @@ mod test {
             ),
             "A single `None` rejects words containing that letter"
         );
+    }
 
+    #[test]
+    fn test_repeated_hint_chars() {
         assert!(
             satisfies_hint(
                 &['b', 'o', 'a', 't', 's'],
@@ -210,7 +217,23 @@ mod test {
                     CharHint::None('y'),
                 ]
             ),
-            "Repeated hints can be marked `None`"
+            "Repeated hint characters can be marked `None`"
+        );
+    }
+
+    #[test]
+    fn test_belle() {
+        assert!(
+            !satisfies_hint(
+                &['b', 'e', 'l', 'l', 'e'],
+                &[
+                    CharHint::Here('b'),
+                    CharHint::None('e'),
+                    CharHint::None('l'),
+                    CharHint::Here('l'),
+                    CharHint::Here('e'),
+                ]
+            ),
         );
     }
 }
