@@ -25,7 +25,7 @@ syntax:
 | ------ | ----------------------------------------- |
 | `a^`   | `a` is in the correct position (green)    |
 | `b?`   | `b` is in the incorrect position (yellow) |
-| `c`    | `c` is not in the word (none)             |
+| `c`    | `c` is not in the word (gray)             |
 
 For example, this result:
 
