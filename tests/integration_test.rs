@@ -1,5 +1,5 @@
 use anyhow::Result;
-use assert_cmd::prelude::*;
+use assert_cmd::Command;
 use assert_fs::{fixture::FileWriteStr, NamedTempFile};
 use predicates::{
     boolean::{NotPredicate, PredicateBooleanExt},
@@ -9,7 +9,6 @@ use predicates::{
     str::ContainsPredicate,
     Predicate,
 };
-use std::process::Command;
 
 #[test]
 fn happy_path() -> Result<()> {
@@ -21,7 +20,7 @@ fn happy_path() -> Result<()> {
             contains("money").and(excludes("sales").and(excludes("fares"))),
         );
 
-    let (path, file) = tmp_file("attempts.txt")?;
+    let (path, file) = tmp_file("hints.txt")?;
 
     file.write_str("mon?ey\n")?;
 
@@ -65,6 +64,68 @@ fn happy_path() -> Result<()> {
                 contains("unzip"),
             ),
         );
+
+    Ok(())
+}
+
+#[test]
+fn read_hints_from_stdin() -> Result<()> {
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-f-", "-a"])
+        .write_stdin("mon?ey\n")
+        .assert()
+        .success()
+        .stdout(contains("signs").and(excludes("money")));
+
+    Ok(())
+}
+
+#[test]
+fn invalid_hint_syntax() -> Result<()> {
+    let (path, file) = tmp_file("hints.txt")?;
+
+    file.write_str("mon?ey\nmon!ey\n")?;
+
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-f", &path])
+        .assert()
+        .failure()
+        .stderr(
+            contains("Parse error")
+                .and(contains("line 2"))
+                .and(contains("\"mon!ey\"")),
+        )
+        .stdout(predicates::str::is_empty());
+
+    Ok(())
+}
+
+#[test]
+fn missing_hints_file() -> Result<()> {
+    let (path, file) = tmp_file("hints.txt")?;
+
+    assert!(!file.exists());
+
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-f", &path])
+        .assert()
+        .failure()
+        .stderr(contains("Error: No such file or directory"))
+        .stdout(predicates::str::is_empty());
+
+    Ok(())
+}
+
+#[test]
+fn option_conflicts() -> Result<()> {
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-a", "-n", "3"])
+        .assert()
+        .failure()
+        .stderr(contains(
+            "The argument '--all' cannot be used with '--limit",
+        ))
+        .stdout(predicates::str::is_empty());
 
     Ok(())
 }
