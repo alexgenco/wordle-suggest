@@ -46,13 +46,11 @@ impl Into<String> for WeightedWord {
 pub fn suggestions(
     hints: &Vec<Hint>,
     unique: bool,
-    singular: bool,
     mut random: Option<StdRng>,
     limit: Option<usize>,
 ) -> impl Iterator<Item = String> {
     let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
         .into_iter()
-        .filter(|(word, _, _)| satisfies_singular(word, singular))
         .filter(|(word, _, _)| satisfies_uniqueness(word, unique))
         .filter(|(word, _, _)| satisfies_hints(word, hints))
         .map(|(word, weight, common)| {
@@ -106,14 +104,6 @@ fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
 fn satisfies_uniqueness(word: &Word, unique: bool) -> bool {
     if unique {
         HashSet::<char>::from_iter(*word).len() == word.len()
-    } else {
-        true
-    }
-}
-
-fn satisfies_singular(word: &Word, singular: bool) -> bool {
-    if singular {
-        word[4] != 's'
     } else {
         true
     }

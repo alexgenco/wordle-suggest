@@ -66,15 +66,7 @@ struct Opts {
         short,
         long,
         display_order = 5,
-        default_missing_value = "true",
-        help = "Exclude words that end in 's'"
-    )]
-    singular: Option<bool>,
-
-    #[clap(
-        short,
-        long,
-        display_order = 6,
+        value_name = "SEED",
         help = "Randomize suggestions with optional seed"
     )]
     random: Option<Option<u64>>,
@@ -87,7 +79,6 @@ fn main() -> Result<()> {
         limit,
         all,
         unique,
-        singular,
         random,
     } = Opts::parse();
 
@@ -102,15 +93,15 @@ fn main() -> Result<()> {
 
     let first_guess = hints.is_empty();
     let unique = unique.unwrap_or(first_guess);
-    let singular = singular.unwrap_or(first_guess);
     let limit = if all { None } else { Some(limit) };
+
     let rng = match random {
         Some(Some(seed)) => Some(StdRng::seed_from_u64(seed)),
         Some(None) => Some(StdRng::from_entropy()),
         None => None,
     };
 
-    for word in wordle_suggest::suggestions(&hints, unique, singular, rng, limit) {
+    for word in wordle_suggest::suggestions(&hints, unique, rng, limit) {
         println!("{}", word);
     }
 
