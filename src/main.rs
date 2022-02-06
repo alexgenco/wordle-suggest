@@ -5,12 +5,13 @@ use std::{
 };
 
 use anyhow::Result;
-use clap::Parser;
+use clap::{ColorChoice, Parser};
+use wordle_suggest::Hint;
 
 mod parser;
 
 #[derive(Debug, Parser)]
-#[clap(about = "Get word suggestions for Wordle")]
+#[clap(about = "Get word suggestions for Wordle", color = ColorChoice::Never)]
 struct Opts {
     #[clap(
         short,
@@ -22,11 +23,21 @@ struct Opts {
     file: Option<PathBuf>,
 
     #[clap(
+        short = 'H',
+        long,
+        parse(try_from_str = parser::try_from_str),
+        multiple_occurrences = true,
+        display_order = 1,
+        help = "Specify a single hint (additive)"
+    )]
+    hints: Vec<Hint>,
+
+    #[clap(
         short = 'n',
         long,
         default_value = "10",
         conflicts_with = "all",
-        display_order = 1,
+        display_order = 2,
         help = "Limit the number of words returned"
     )]
     limit: usize,
@@ -35,7 +46,7 @@ struct Opts {
         short,
         long,
         conflicts_with = "limit",
-        display_order = 2,
+        display_order = 3,
         help = "Do not limit the number of words returned"
     )]
     all: bool,
@@ -43,7 +54,7 @@ struct Opts {
     #[clap(
         short,
         long,
-        display_order = 3,
+        display_order = 4,
         default_missing_value = "true",
         help = "Exclude words with repeated characters"
     )]
@@ -52,7 +63,7 @@ struct Opts {
     #[clap(
         short,
         long,
-        display_order = 4,
+        display_order = 5,
         default_missing_value = "true",
         help = "Exclude words that end in 's'"
     )]
@@ -62,16 +73,21 @@ struct Opts {
 fn main() -> Result<()> {
     let Opts {
         file,
+        hints,
         limit,
         all,
         unique,
         singular,
     } = Opts::parse();
 
-    let hints = match file {
-        Some(path) => parser::parse_reader(input_reader(path)?)?,
-        None => Vec::new(),
-    };
+    let hints = [
+        match file {
+            Some(path) => parser::try_from_reader(input_reader(path)?)?,
+            None => Vec::new(),
+        },
+        hints,
+    ]
+    .concat();
 
     let first_guess = hints.is_empty();
     let unique = unique.unwrap_or(first_guess);

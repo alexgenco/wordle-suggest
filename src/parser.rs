@@ -13,7 +13,7 @@ use nom::{
 };
 use wordle_suggest::{CharHint, Hint};
 
-pub fn parse_reader<'a>(rd: Box<dyn BufRead>) -> Result<Vec<Hint>> {
+pub fn try_from_reader<'a>(rd: Box<dyn BufRead>) -> Result<Vec<Hint>> {
     let mut hints = Vec::new();
 
     for (i, line) in rd.lines().enumerate() {
@@ -23,13 +23,19 @@ pub fn parse_reader<'a>(rd: Box<dyn BufRead>) -> Result<Vec<Hint>> {
             continue;
         }
 
-        let (_, hint) =
-            parse_line(&line).map_err(|_| anyhow!("Parse error on line {}: {:?}", i + 1, line))?;
+        let (_, hint) = parse_line(&line)
+            .map_err(|_| anyhow!("Invalid hint syntax on line {}: {:?}", i + 1, line))?;
 
         hints.push(hint);
     }
 
     Ok(hints)
+}
+
+pub fn try_from_str<'a>(input: &'a str) -> Result<Hint> {
+    let (_, hint) = parse_line(&input).map_err(|_| anyhow!("Invalid hint syntax: {:?}", input))?;
+
+    Ok(hint)
 }
 
 fn parse_line<'a>(input: &'a str) -> IResult<&'a str, Hint> {
@@ -52,17 +58,17 @@ fn any_alpha<'a>(input: &'a str) -> IResult<&'a str, char> {
 mod test {
     use std::io::{BufRead, BufReader};
 
-    use super::{parse_reader, CharHint};
+    use super::{try_from_reader, CharHint};
 
     #[test]
     fn test_parse_reader_empty() {
-        let hints = parse_reader(rd("")).unwrap();
+        let hints = try_from_reader(rd("")).unwrap();
         assert!(hints.is_empty());
     }
 
     #[test]
     fn test_parse_reader_ok() {
-        let hints = parse_reader(rd("b^oat?s\nsa^l?es\n")).unwrap();
+        let hints = try_from_reader(rd("b^oat?s\nsa^l?es\n")).unwrap();
 
         assert_eq!(
             hints,
@@ -87,7 +93,7 @@ mod test {
 
     #[test]
     fn test_parse_reader_no_newline() {
-        let hints = parse_reader(rd("b^oat?s")).unwrap();
+        let hints = try_from_reader(rd("b^oat?s")).unwrap();
 
         assert_eq!(
             hints,
@@ -103,7 +109,7 @@ mod test {
 
     #[test]
     fn test_parse_reader_blank_line() {
-        let hints = parse_reader(rd("b^oat?s\n\n")).unwrap();
+        let hints = try_from_reader(rd("b^oat?s\n\n")).unwrap();
 
         assert_eq!(
             hints,
@@ -119,21 +125,21 @@ mod test {
 
     #[test]
     fn test_parse_reader_incomplete_line() {
-        let error = parse_reader(rd("b^oat?\n")).unwrap_err();
+        let error = try_from_reader(rd("b^oat?\n")).unwrap_err();
 
         assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat?\"");
     }
 
     #[test]
     fn test_parse_reader_too_long_line() {
-        let error = parse_reader(rd("b^oat?sx\n")).unwrap_err();
+        let error = try_from_reader(rd("b^oat?sx\n")).unwrap_err();
 
         assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat?sx\"");
     }
 
     #[test]
     fn test_parse_reader_invalid_character() {
-        let error = parse_reader(rd("b^oat!s\n")).unwrap_err();
+        let error = try_from_reader(rd("b^oat!s\n")).unwrap_err();
 
         assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat!s\"");
     }

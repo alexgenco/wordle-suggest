@@ -81,6 +81,21 @@ fn read_hints_from_stdin() -> Result<()> {
 }
 
 #[test]
+fn read_hints_from_opts() -> Result<()> {
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-H", "mon?ey", "-H", "cabi^n?", "-a"])
+        .assert()
+        .success()
+        .stdout(
+            contains("unzip")
+                .and(excludes("money"))
+                .and(excludes("cabin")),
+        );
+
+    Ok(())
+}
+
+#[test]
 fn invalid_hint_syntax() -> Result<()> {
     let (path, file) = tmp_file("hints.txt")?;
 
