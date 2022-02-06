@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "1.0.53"
 clap = { version = "3.0.10", features = ["derive"] }
 nom = { version = "7.1.0" }
+rand = { version = "0.8.4", features = ["std_rng"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.4"

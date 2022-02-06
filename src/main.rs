@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::Result;
 use clap::{ColorChoice, Parser};
+use rand::{rngs::StdRng, SeedableRng};
 use wordle_suggest::Hint;
 
 mod parser;
@@ -69,6 +70,14 @@ struct Opts {
         help = "Exclude words that end in 's'"
     )]
     singular: Option<bool>,
+
+    #[clap(
+        short,
+        long,
+        display_order = 6,
+        help = "Randomize suggestions with optional seed"
+    )]
+    random: Option<Option<u64>>,
 }
 
 fn main() -> Result<()> {
@@ -79,6 +88,7 @@ fn main() -> Result<()> {
         all,
         unique,
         singular,
+        random,
     } = Opts::parse();
 
     let hints = [
@@ -94,8 +104,13 @@ fn main() -> Result<()> {
     let unique = unique.unwrap_or(first_guess);
     let singular = singular.unwrap_or(first_guess);
     let limit = if all { None } else { Some(limit) };
+    let rng = match random {
+        Some(Some(seed)) => Some(StdRng::seed_from_u64(seed)),
+        Some(None) => Some(StdRng::from_entropy()),
+        None => None,
+    };
 
-    for word in wordle_suggest::filtered_words(&hints, unique, singular, limit) {
+    for word in wordle_suggest::suggestions(&hints, unique, singular, rng, limit) {
         println!("{}", word);
     }
 

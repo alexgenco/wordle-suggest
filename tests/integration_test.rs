@@ -96,6 +96,29 @@ fn read_hints_from_opts() -> Result<()> {
 }
 
 #[test]
+fn randomize() -> Result<()> {
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-r", "-n3"])
+        .assert()
+        .success()
+        .stdout(line_count(eq(3)));
+
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-r123", "-n2"])
+        .assert()
+        .success()
+        .stdout(eq("wived\ngrebo\n"));
+
+    Command::cargo_bin("wordle-suggest")?
+        .args(["-r234", "-n2"])
+        .assert()
+        .success()
+        .stdout(eq("money\nmolar\n"));
+
+    Ok(())
+}
+
+#[test]
 fn invalid_hint_syntax() -> Result<()> {
     let (path, file) = tmp_file("hints.txt")?;
 

@@ -4,6 +4,8 @@ use std::{
     iter,
 };
 
+use rand::{rngs::StdRng, Rng};
+
 mod weights {
     include!(concat!(env!("OUT_DIR"), "/weights.rs"));
 }
@@ -41,10 +43,11 @@ impl Into<String> for WeightedWord {
     }
 }
 
-pub fn filtered_words(
+pub fn suggestions(
     hints: &Vec<Hint>,
     unique: bool,
     singular: bool,
+    mut random: Option<StdRng>,
     limit: Option<usize>,
 ) -> impl Iterator<Item = String> {
     let mut heap: BinaryHeap<WeightedWord> = weights::WEIGHTS
@@ -52,10 +55,20 @@ pub fn filtered_words(
         .filter(|(word, _, _)| satisfies_singular(word, singular))
         .filter(|(word, _, _)| satisfies_uniqueness(word, unique))
         .filter(|(word, _, _)| satisfies_hints(word, hints))
-        .map(|(word, weight, common)| WeightedWord {
-            word,
-            weight,
-            common,
+        .map(|(word, weight, common)| {
+            if let Some(rng) = random.as_mut() {
+                WeightedWord {
+                    word,
+                    weight: rng.gen::<usize>(),
+                    common: rng.gen::<bool>(),
+                }
+            } else {
+                WeightedWord {
+                    word,
+                    weight,
+                    common,
+                }
+            }
         })
         .collect();
 
