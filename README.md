@@ -1,6 +1,6 @@
 # `wordle-suggest`
 
-![Crates.io](https://img.shields.io/crates/d/wordle-suggest?style=for-the-badge)
+![Crates.io](https://img.shields.io/crates/v/wordle-suggest)
 
 ## Usage
 
