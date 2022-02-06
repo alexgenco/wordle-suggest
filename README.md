@@ -1,5 +1,7 @@
 # `wordle-suggest`
 
+![Crates.io](https://img.shields.io/crates/d/wordle-suggest?style=for-the-badge)
+
 ## Usage
 
 Run without arguments to get a list of good starter words:
