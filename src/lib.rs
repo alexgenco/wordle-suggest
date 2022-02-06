@@ -69,20 +69,20 @@ fn satisfies_hints(word: &Word, hints: &Vec<Hint>) -> bool {
 }
 
 fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
-    let mut last_seen = HashMap::new();
+    let mut known_char_counts = HashMap::new();
 
     hint.iter().enumerate().all(|(i, ch)| match ch {
         CharHint::Here(c) => {
-            last_seen.insert(*c, i);
+            *known_char_counts.entry(c).or_insert(0) += 1;
             word[i] == *c
         }
         CharHint::Elsewhere(c) => {
-            last_seen.insert(*c, i);
+            *known_char_counts.entry(c).or_insert(0) += 1;
             word[i] != *c && word.contains(c)
         }
         CharHint::None(c) => {
-            if let Some(j) = last_seen.get(c) {
-                !word[j + 1..].contains(c)
+            if let Some(&count) = known_char_counts.get(c) {
+                word.iter().filter(|&wc| *wc == *c).count() <= count
             } else {
                 !word.contains(c)
             }
@@ -223,17 +223,29 @@ mod test {
 
     #[test]
     fn test_belle() {
-        assert!(
-            !satisfies_hint(
-                &['b', 'e', 'l', 'l', 'e'],
-                &[
-                    CharHint::Here('b'),
-                    CharHint::None('e'),
-                    CharHint::None('l'),
-                    CharHint::Here('l'),
-                    CharHint::Here('e'),
-                ]
-            ),
-        );
+        assert!(!satisfies_hint(
+            &['b', 'e', 'l', 'l', 'e'],
+            &[
+                CharHint::Here('b'),
+                CharHint::None('e'),
+                CharHint::None('l'),
+                CharHint::Here('l'),
+                CharHint::Here('e'),
+            ]
+        ),);
+    }
+
+    #[test]
+    fn test_here_elsewhere_none() {
+        assert!(satisfies_hint(
+            &['a', 'b', 'a', 'b', 'c'],
+            &[
+                CharHint::Here('a'),
+                CharHint::Elsewhere('a'),
+                CharHint::None('x'),
+                CharHint::None('a'),
+                CharHint::None('x'),
+            ]
+        ),);
     }
 }
