@@ -24,7 +24,7 @@ struct Opts {
 
     #[clap(
         short = 'H',
-        long,
+        long = "hint",
         parse(try_from_str = parser::try_from_str),
         multiple_occurrences = true,
         display_order = 1,
