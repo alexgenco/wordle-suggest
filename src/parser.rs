@@ -127,21 +127,21 @@ mod test {
     fn test_parse_reader_incomplete_line() {
         let error = try_from_reader(rd("b^oat?\n")).unwrap_err();
 
-        assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat?\"");
+        assert_eq!(error.to_string(), "Invalid hint syntax on line 1: \"b^oat?\"");
     }
 
     #[test]
     fn test_parse_reader_too_long_line() {
         let error = try_from_reader(rd("b^oat?sx\n")).unwrap_err();
 
-        assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat?sx\"");
+        assert_eq!(error.to_string(), "Invalid hint syntax on line 1: \"b^oat?sx\"");
     }
 
     #[test]
     fn test_parse_reader_invalid_character() {
         let error = try_from_reader(rd("b^oat!s\n")).unwrap_err();
 
-        assert_eq!(error.to_string(), "Parse error on line 1: \"b^oat!s\"");
+        assert_eq!(error.to_string(), "Invalid hint syntax on line 1: \"b^oat!s\"");
     }
 
     fn rd(content: &'static str) -> Box<dyn BufRead> {

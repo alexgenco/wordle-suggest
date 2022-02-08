@@ -129,7 +129,7 @@ fn invalid_hint_syntax() -> Result<()> {
         .assert()
         .failure()
         .stderr(
-            contains("Parse error")
+            contains("Invalid hint syntax")
                 .and(contains("line 2"))
                 .and(contains("\"mon!ey\"")),
         )
