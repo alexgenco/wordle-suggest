@@ -16,8 +16,8 @@ fn happy_path() -> Result<()> {
         .assert()
         .success()
         .stdout(
-            // Words with repeated characters and plurals are excluded by default on first hint
-            contains("money").and(excludes("sales").and(excludes("fares"))),
+            // Words with repeated characters are excluded by default on first hint
+            contains("dates").and(excludes("sales")),
         );
 
     let (path, file) = tmp_file("hints.txt")?;
@@ -29,26 +29,19 @@ fn happy_path() -> Result<()> {
         .assert()
         .success()
         .stdout(
-            // Words with repeated characters and plurals are allowed after first hint
+            // Words with repeated characters are allowed after first hint
             contains("signs")
                 // Option `-n 50` ensure we get 50 results back
                 .and(line_count(eq(50))),
         );
 
     Command::cargo_bin("wordle-suggest")?
-        .args(["-f", &path, "--unique", "--singular"])
+        .args(["-f", &path, "--unique"])
         .assert()
         .success()
         .stdout(
-            contains("cabin")
-                .and(
-                    // Plural words are disallowed with explicit `--singular`
-                    excludes("beans"),
-                )
-                .and(
-                    // Repeated characters are disallowed with explicit `--unique`
-                    excludes("teens"),
-                ),
+            // Repeated characters are disallowed with explicit `--unique`
+            contains("gains").and(excludes("signs")),
         );
 
     file.write_str("cabi^n?")?;
@@ -107,13 +100,13 @@ fn randomize() -> Result<()> {
         .args(["-r123", "-n2"])
         .assert()
         .success()
-        .stdout(eq("wived\ngrebo\n"));
+        .stdout(eq("simul\nvogue\n"));
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-r234", "-n2"])
         .assert()
         .success()
-        .stdout(eq("money\nmolar\n"));
+        .stdout(eq("jades\nivray\n"));
 
     Ok(())
 }
