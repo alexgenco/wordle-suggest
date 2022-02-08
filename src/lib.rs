@@ -91,13 +91,15 @@ fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
             *known_char_counts.entry(c).or_insert(0) += 1;
             word[i] != *c && word.contains(c)
         }
+        CharHint::None(_) => true
+    }) && hint.iter().all(|ch| match ch {
         CharHint::None(c) => {
-            if let Some(&count) = known_char_counts.get(c) {
-                word.iter().filter(|&wc| *wc == *c).count() <= count
-            } else {
-                !word.contains(c)
-            }
+            let expected_count = known_char_counts.get(c).cloned().unwrap_or(0);
+            let actual_count = word.iter().filter(|&wc| *wc == *c).count();
+
+            expected_count == actual_count
         }
+        CharHint::Here(_) | CharHint::Elsewhere(_) => true,
     })
 }
 
@@ -222,6 +224,20 @@ mod test {
             ),
             "Repeated hint characters can be marked `None`"
         );
+    }
+
+    #[test]
+    fn test_here_after_none() {
+        assert!(satisfies_hint(
+            &['f', 'r', 'a', 'm', 'e'],
+            &[
+                CharHint::None('e'),
+                CharHint::Here('r'),
+                CharHint::Here('a'),
+                CharHint::None('s'),
+                CharHint::Here('e'),
+            ]
+        ),);
     }
 
     #[test]
