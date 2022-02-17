@@ -100,13 +100,13 @@ fn randomize() -> Result<()> {
         .args(["-r123", "-n2"])
         .assert()
         .success()
-        .stdout(eq("simul\nvogue\n"));
+        .stdout(eq("xhtml\nriley\n"));
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-r234", "-n2"])
         .assert()
         .success()
-        .stdout(eq("jades\nivray\n"));
+        .stdout(eq("tyned\ngulps\n"));
 
     Ok(())
 }
