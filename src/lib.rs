@@ -58,7 +58,7 @@ pub fn suggestions(
                 WeightedWord {
                     word,
                     weight: rng.gen::<usize>(),
-                    common: rng.gen::<bool>(),
+                    common: true,
                 }
             } else {
                 WeightedWord {
@@ -91,7 +91,7 @@ fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
             *known_char_counts.entry(c).or_insert(0) += 1;
             word[i] != *c && word.contains(c)
         }
-        CharHint::None(_) => true
+        CharHint::None(_) => true,
     }) && hint.iter().all(|ch| match ch {
         CharHint::None(c) => {
             let expected_count = known_char_counts.get(c).cloned().unwrap_or(0);
