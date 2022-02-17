@@ -80,26 +80,26 @@ fn satisfies_hints(word: &Word, hints: &Vec<Hint>) -> bool {
 }
 
 fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
-    let mut known_char_counts = HashMap::new();
+    let mut counts = HashMap::new();
 
     hint.iter().enumerate().all(|(i, ch)| match ch {
         CharHint::Here(c) => {
-            *known_char_counts.entry(c).or_insert(0) += 1;
+            *counts.entry(c).or_insert(0) += 1;
             word[i] == *c
         }
         CharHint::Elsewhere(c) => {
-            *known_char_counts.entry(c).or_insert(0) += 1;
-            word[i] != *c && word.contains(c)
+            *counts.entry(c).or_insert(0) += 1;
+            word[i] != *c
         }
         CharHint::None(_) => true,
     }) && hint.iter().all(|ch| match ch {
-        CharHint::None(c) => {
-            let expected_count = known_char_counts.get(c).cloned().unwrap_or(0);
-            let actual_count = word.iter().filter(|&wc| *wc == *c).count();
+        CharHint::None(c) | CharHint::Elsewhere(c) => {
+            let exp = counts.get(c).cloned().unwrap_or(0);
+            let act = word.iter().filter(|&wc| *wc == *c).count();
 
-            expected_count == actual_count
+            exp == act
         }
-        CharHint::Here(_) | CharHint::Elsewhere(_) => true,
+        CharHint::Here(_) => true,
     })
 }
 
