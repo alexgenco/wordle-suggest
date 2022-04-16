@@ -54,7 +54,7 @@ fn happy_path() -> Result<()> {
             // Option `--all` removes limit from returned results
             line_count(gt(10)).and(
                 // Contains the solution
-                contains("unzip"),
+                contains("unhip"),
             ),
         );
 
@@ -80,7 +80,7 @@ fn read_hints_from_opts() -> Result<()> {
         .assert()
         .success()
         .stdout(
-            contains("unzip")
+            contains("unhip")
                 .and(excludes("money"))
                 .and(excludes("cabin")),
         );
@@ -100,13 +100,13 @@ fn randomize() -> Result<()> {
         .args(["-r123", "-n2"])
         .assert()
         .success()
-        .stdout(eq("xhtml\nriley\n"));
+        .stdout(eq("tores\nflabs\n"));
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-r234", "-n2"])
         .assert()
         .success()
-        .stdout(eq("tyned\ngulps\n"));
+        .stdout(eq("muzak\nkyars\n"));
 
     Ok(())
 }
