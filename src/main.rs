@@ -30,7 +30,7 @@ struct Opts {
         parse(try_from_str = parser::try_from_str),
         multiple_occurrences = true,
         display_order = 1,
-        help = "Specify a single hint (additive)"
+        help = "Specify a single hint (additive).\nYellow letters are prefixed with ~ and green with ^",
     )]
     hints: Vec<Hint>,
 

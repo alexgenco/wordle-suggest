@@ -10,6 +10,9 @@ mod weights {
     include!(concat!(env!("OUT_DIR"), "/weights.rs"));
 }
 
+pub const MARK_HERE: &str = "^";
+pub const MARK_ELSEWHERE: &str = "~";
+
 pub type Hint = [CharHint; 5];
 pub type Word = [char; 5];
 
@@ -17,34 +20,40 @@ pub type Word = [char; 5];
 pub enum CharHint {
     Here(char),
     Elsewhere(char),
-    None(char),
+    Nowhere(char),
 }
 
-#[derive(Debug, Ord, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 struct WeightedWord {
     word: Word,
     weight: usize,
     common: bool,
 }
 
-impl PartialOrd for WeightedWord {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl Ord for WeightedWord {
+    fn cmp(&self, other: &Self) -> Ordering {
         if self.common == other.common {
-            self.weight.partial_cmp(&other.weight)
+            self.weight.cmp(&other.weight)
         } else {
-            self.common.partial_cmp(&other.common)
+            self.common.cmp(&other.common)
         }
     }
 }
 
-impl Into<String> for WeightedWord {
-    fn into(self) -> String {
-        String::from_iter(self.word)
+impl PartialOrd for WeightedWord {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl From<WeightedWord> for String {
+    fn from(w: WeightedWord) -> Self {
+        String::from_iter(w.word)
     }
 }
 
 pub fn suggestions(
-    hints: &Vec<Hint>,
+    hints: &[Hint],
     unique: bool,
     mut random: Option<StdRng>,
     limit: Option<usize>,
@@ -70,12 +79,12 @@ pub fn suggestions(
         })
         .collect();
 
-    let limit = limit.unwrap_or_else(|| heap.len());
+    let limit = limit.unwrap_or(heap.len());
 
     iter::from_fn(move || heap.pop().map(Into::into)).take(limit)
 }
 
-fn satisfies_hints(word: &Word, hints: &Vec<Hint>) -> bool {
+fn satisfies_hints(word: &Word, hints: &[Hint]) -> bool {
     hints.iter().all(|hint| satisfies_hint(word, hint))
 }
 
@@ -91,9 +100,9 @@ fn satisfies_hint(word: &Word, hint: &Hint) -> bool {
             *counts.entry(c).or_insert(0) += 1;
             word[i] != *c
         }
-        CharHint::None(_) => true,
+        CharHint::Nowhere(_) => true,
     }) && hint.iter().all(|ch| match ch {
-        CharHint::None(c) | CharHint::Elsewhere(c) => {
+        CharHint::Nowhere(c) | CharHint::Elsewhere(c) => {
             let exp = counts.get(c).cloned().unwrap_or(0);
             let act = word.iter().filter(|&wc| *wc == *c).count();
 
@@ -147,11 +156,11 @@ mod test {
             satisfies_hint(
                 &['m', 'o', 'n', 'e', 'y'],
                 &[
-                    CharHint::None('q'),
-                    CharHint::None('x'),
-                    CharHint::None('p'),
-                    CharHint::None('z'),
-                    CharHint::None('r'),
+                    CharHint::Nowhere('q'),
+                    CharHint::Nowhere('x'),
+                    CharHint::Nowhere('p'),
+                    CharHint::Nowhere('z'),
+                    CharHint::Nowhere('r'),
                 ]
             ),
             "All `None`s are satisfied by a word containing none of those letters"
@@ -182,10 +191,10 @@ mod test {
                 &['m', 'o', 'n', 'e', 'y'],
                 &[
                     CharHint::Elsewhere('y'),
-                    CharHint::None('x'),
-                    CharHint::None('p'),
-                    CharHint::None('z'),
-                    CharHint::None('r'),
+                    CharHint::Nowhere('x'),
+                    CharHint::Nowhere('p'),
+                    CharHint::Nowhere('z'),
+                    CharHint::Nowhere('r'),
                 ]
             ),
             "An `Elsewhere` is satisfied with a letter in a different position"
@@ -199,7 +208,7 @@ mod test {
                 &['a', 'p', 'n', 'i', 'c'],
                 &[
                     CharHint::Elsewhere('p'),
-                    CharHint::None('a'), // <-
+                    CharHint::Nowhere('a'), // <-
                     CharHint::Here('n'),
                     CharHint::Here('i'),
                     CharHint::Here('c'),
@@ -217,9 +226,9 @@ mod test {
                 &[
                     CharHint::Here('b'),
                     CharHint::Elsewhere('a'),
-                    CharHint::None('b'),
-                    CharHint::None('b'),
-                    CharHint::None('y'),
+                    CharHint::Nowhere('b'),
+                    CharHint::Nowhere('b'),
+                    CharHint::Nowhere('y'),
                 ]
             ),
             "Repeated hint characters can be marked `None`"
@@ -231,10 +240,10 @@ mod test {
         assert!(satisfies_hint(
             &['f', 'r', 'a', 'm', 'e'],
             &[
-                CharHint::None('e'),
+                CharHint::Nowhere('e'),
                 CharHint::Here('r'),
                 CharHint::Here('a'),
-                CharHint::None('s'),
+                CharHint::Nowhere('s'),
                 CharHint::Here('e'),
             ]
         ),);
@@ -246,8 +255,8 @@ mod test {
             &['b', 'e', 'l', 'l', 'e'],
             &[
                 CharHint::Here('b'),
-                CharHint::None('e'),
-                CharHint::None('l'),
+                CharHint::Nowhere('e'),
+                CharHint::Nowhere('l'),
                 CharHint::Here('l'),
                 CharHint::Here('e'),
             ]
@@ -261,9 +270,9 @@ mod test {
             &[
                 CharHint::Here('a'),
                 CharHint::Elsewhere('a'),
-                CharHint::None('x'),
-                CharHint::None('a'),
-                CharHint::None('x'),
+                CharHint::Nowhere('x'),
+                CharHint::Nowhere('a'),
+                CharHint::Nowhere('x'),
             ]
         ),);
     }

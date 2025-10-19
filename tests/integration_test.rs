@@ -22,7 +22,7 @@ fn happy_path() -> Result<()> {
 
     let (path, file) = tmp_file("hints.txt")?;
 
-    file.write_str("mon?ey\n")?;
+    file.write_str("mon~ey\n")?;
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-f", &path, "-n", "50"])
@@ -44,7 +44,7 @@ fn happy_path() -> Result<()> {
             contains("gains").and(excludes("signs")),
         );
 
-    file.write_str("cabi^n?")?;
+    file.write_str("cabi^n~")?;
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-f", &path, "--all"])
@@ -65,7 +65,7 @@ fn happy_path() -> Result<()> {
 fn read_hints_from_stdin() -> Result<()> {
     Command::cargo_bin("wordle-suggest")?
         .args(["-f-", "-a"])
-        .write_stdin("mon?ey\n")
+        .write_stdin("mon~ey\n")
         .assert()
         .success()
         .stdout(contains("signs").and(excludes("money")));
@@ -76,7 +76,7 @@ fn read_hints_from_stdin() -> Result<()> {
 #[test]
 fn read_hints_from_opts() -> Result<()> {
     Command::cargo_bin("wordle-suggest")?
-        .args(["-H", "mon?ey", "-H", "cabi^n?", "-a"])
+        .args(["-H", "mon~ey", "-H", "cabi^n~", "-a"])
         .assert()
         .success()
         .stdout(
@@ -115,7 +115,7 @@ fn randomize() -> Result<()> {
 fn invalid_hint_syntax() -> Result<()> {
     let (path, file) = tmp_file("hints.txt")?;
 
-    file.write_str("mon?ey\nmon!ey\n")?;
+    file.write_str("mon~ey\nmon!ey\n")?;
 
     Command::cargo_bin("wordle-suggest")?
         .args(["-f", &path])
